@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>たるファイラー</title>
+    <style>
+        /* ===== 色(暗い配色が基本。端末やブラウザが明るい表示のときは明るい配色) ===== */
+        :root {
+            --bg: #14171c;
+            --panel: #1c2129;
+            --panel2: #262d38;
+            --line: #2f3844;
+            --tx: #e6e9ee;
+            --tx2: #9aa4b2;
+            --acc: #4da3ff;
+            --accSoft: rgba(77, 163, 255, .18);
+            --star: #f5c518;
+            --danger: #ff6b6b;
+            --scrim: rgba(0, 0, 0, .5);
+            --shadow: 0 6px 24px rgba(0, 0, 0, .45);
+            color-scheme: dark;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg: #f6f7f9;
+                --panel: #ffffff;
+                --panel2: #eceff4;
+                --line: #d9dee5;
+                --tx: #1d232b;
+                --tx2: #5f6b7a;
+                --acc: #1a73e8;
+                --accSoft: rgba(26, 115, 232, .12);
+                --star: #e6a700;
+                --danger: #d93025;
+                --scrim: rgba(0, 0, 0, .35);
+                --shadow: 0 6px 24px rgba(0, 0, 0, .18);
+                color-scheme: light;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            background: var(--bg);
+            color: var(--tx);
+            font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+            font-size: 15px;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none;
+        }
+
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        button {
+            font: inherit;
+            color: inherit;
+            background: none;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        /* ===== 画面全体 ===== */
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            min-height: 48px;
+            padding: 0 4px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .ib {
+            flex: none;
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            font-size: 20px;
+        }
+
+        .ib.sm {
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+        }
+
+        .ib:active,
+        .tb:active,
+        .cr:active,
+        .di:active,
+        #opbar button:active {
+            background: var(--panel2);
+        }
+
+        /* ===== タブ ===== */
+        #tabs {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 48px;
+            padding: 0 2px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        #tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab {
+            flex: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 36px;
+            max-width: 170px;
+            padding: 0 10px;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            background: var(--panel2);
+            color: var(--tx2);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .tab.on {
+            padding-right: 4px;
+            border-color: var(--acc);
+            background: var(--accSoft);
+            color: var(--tx);
+        }
+
+        .tab .ti {
+            position: relative;
+            flex: none;
+        }
+
+        .tab .bd {
+            position: absolute;
+            right: -5px;
+            bottom: -4px;
+            min-width: 13px;
+            height: 13px;
+            padding: 0 2px;
+            border-radius: 7px;
+            background: var(--acc);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 13px;
+            text-align: center;
+        }
+
+        .tab .tl {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tab .tx {
+            flex: none;
+            display: grid;
+            place-items: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            color: var(--tx2);
+            font-size: 13px;
+        }
+
+        /* ===== 選択中の上部 ===== */
+        #selCount {
+            flex: 1;
+            padding-left: 6px;
+            font-weight: 600;
+        }
+
+        .tb {
+            padding: 9px 14px;
+            border-radius: 9px;
+            color: var(--acc);
+            font-weight: 600;
+        }
+
+        /* ===== パス表示 ===== */
+        #pathbar {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            min-height: 46px;
+            padding: 0 4px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .star {
+            color: var(--tx2);
+        }
+
+        .star.on {
+            color: var(--star);
+        }
+
+        #crumbs {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            height: 46px;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+
+        #crumbs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cr {
+            flex: none;
+            padding: 7px 6px;
+            border-radius: 7px;
+            color: var(--tx2);
+        }
+
+        .cr:last-child {
+            color: var(--tx);
+            font-weight: 600;
+        }
+
+        .cs {
+            flex: none;
+            color: var(--tx2);
+            opacity: .6;
+        }
+
+        /* ===== 絞り込み ===== */
+        #searchRow {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 4px 6px 10px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--line);
+        }
+
+        #q {
+            flex: 1;
+            min-width: 0;
+            padding: 9px 10px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: var(--bg);
+            color: var(--tx);
+            font: inherit;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        /* ===== メイン表示領域 ===== */
+        #main {
+            flex: 1;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .it {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .it .ic {
+            flex: none;
+            text-align: center;
+        }
+
+        .it .tx {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .it .nm {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .it .mt {
+            margin-top: 2px;
+            color: var(--tx2);
+            font-size: 12px;
+        }
+
+        .it.hid {
+            opacity: .55;
+        }
+
+        .it.sel {
+            background: var(--accSoft);
+        }
+
+        .ck {
+            flex: none;
+            display: none;
+            place-items: center;
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--tx2);
+            border-radius: 50%;
+            font-size: 12px;
+        }
+
+        .selmode .ck {
+            display: grid;
+        }
+
+        .it.sel .ck {
+            border-color: var(--acc);
+            background: var(--acc);
+            color: #fff;
+        }
+
+        /* 一覧表示 */
+        .list .it {
+            gap: 12px;
+            min-height: 56px;
+            padding: 8px 14px;
+            border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+        }
+
+        .list .it .ic {
+            width: 34px;
+            font-size: 26px;
+        }
+
+        .list .ck {
+            order: 3;
+        }
+
+        /* アイコン表示 */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+            gap: 6px;
+            padding: 8px;
+        }
+
+        .grid .it {
+            position: relative;
+            flex-direction: column;
+            gap: 4px;
+            padding: 10px 4px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .grid .it .ic {
+            font-size: 40px;
+        }
+
+        .grid .it .tx {
+            width: 100%;
+        }
+
+        .grid .it .nm {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            white-space: normal;
+            word-break: break-all;
+            font-size: 12.5px;
+        }
+
+        .grid .it .mt {
+            display: none;
+        }
+
+        .grid .ck {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+        }
+
+        .msg {
+            padding: 40px 24px;
+            color: var(--tx2);
+            line-height: 1.7;
+            text-align: center;
+        }
+
+        .btn {
+            margin-top: 14px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            background: var(--acc);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* ===== 下部操作バー(選択中だけ表示) ===== */
+        #opbar {
+            display: flex;
+            padding: 4px;
+            background: var(--panel);
+            border-top: 1px solid var(--line);
+        }
+
+        #opbar button {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 6px 2px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        #opbar .oi {
+            font-size: 20px;
+        }
+
+        #opbar button:disabled {
+            opacity: .35;
+        }
+
+        /* ===== ドロワー(パス表示の下から出てきます) ===== */
+        #scrim {
+            position: fixed;
+            top: var(--drTop, 94px);
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 20;
+            background: var(--scrim);
+        }
+
+        #drawer {
+            position: fixed;
+            top: var(--drTop, 94px);
+            bottom: 0;
+            left: 0;
+            z-index: 21;
+            display: flex;
+            flex-direction: column;
+            width: min(82vw, 320px);
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            transform: translateX(-104%);
+            transition: transform .22s ease;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        #drawer.open {
+            transform: none;
+        }
+
+        .dscroll {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .sec {
+            border-radius: 10px;
+        }
+
+        .sech {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            padding: 14px 14px 8px;
+            color: var(--tx2);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .05em;
+            text-align: left;
+        }
+
+        .sech .ar {
+            width: 14px;
+        }
+
+        .lift {
+            position: relative;
+            z-index: 2;
+            background: var(--panel2);
+            box-shadow: var(--shadow);
+        }
+
+        .di {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 48px;
+            padding: 9px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .di .ic {
+            flex: none;
+            width: 26px;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .di .tx {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .di .nm {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .di .sub {
+            overflow: hidden;
+            color: var(--tx2);
+            font-size: 11.5px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .di.cur {
+            background: var(--accSoft);
+        }
+
+        .di .fs {
+            color: var(--star);
+        }
+
+        .bar {
+            height: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+            border-radius: 2px;
+            background: var(--panel2);
+        }
+
+        .bar i {
+            display: block;
+            height: 100%;
+            background: var(--acc);
+        }
+
+        .dnote {
+            padding: 6px 16px 10px 54px;
+            color: var(--tx2);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .dsep {
+            height: 1px;
+            margin: 6px 0;
+            background: var(--line);
+        }
+
+        .ver {
+            padding: 8px 16px 12px;
+            color: var(--tx2);
+            font-size: 11px;
+        }
+
+        /* ===== メニュー・ウインドウ・お知らせ ===== */
+        #pop {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+        }
+
+        .pm {
+            position: fixed;
+            min-width: 210px;
+            max-width: 84vw;
+            max-height: 80vh;
+            overflow: auto;
+            padding: 6px 0;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+        }
+
+        .pm button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 11px 16px;
+            text-align: left;
+        }
+
+        .pm button:active {
+            background: var(--panel2);
+        }
+
+        .pm button:disabled {
+            opacity: .4;
+        }
+
+        .pm .pc {
+            width: 20px;
+            color: var(--acc);
+            text-align: center;
+        }
+
+        .pm hr {
+            margin: 4px 0;
+            border: 0;
+            border-top: 1px solid var(--line);
+        }
+
+        #modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: grid;
+            place-items: center;
+            padding: 16px;
+            background: var(--scrim);
+        }
+
+        .dlg {
+            width: min(92vw, 400px);
+            padding: 18px;
+            border-radius: 14px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+        }
+
+        .dlg h3 {
+            margin: 0 0 10px;
+            font-size: 16px;
+        }
+
+        .dlg .bd {
+            color: var(--tx2);
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-all;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .dlg input {
+            width: 100%;
+            margin-top: 6px;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--tx);
+            font: inherit;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .dlg .bt {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .dlg .bt button {
+            padding: 9px 16px;
+            border-radius: 9px;
+        }
+
+        .dlg .ok {
+            background: var(--acc);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .dlg .ok.danger {
+            background: var(--danger);
+        }
+
+        .prop {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 6px 14px;
+            margin: 0;
+            font-size: 13.5px;
+        }
+
+        .prop dt {
+            color: var(--tx2);
+        }
+
+        .prop dd {
+            margin: 0;
+            color: var(--tx);
+        }
+
+        code {
+            color: var(--tx);
+            font-size: 13px;
+        }
+
+        #toast {
+            position: fixed;
+            left: 50%;
+            bottom: calc(84px + env(safe-area-inset-bottom));
+            z-index: 60;
+            max-width: 88vw;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: #333c48;
+            color: #fff;
+            font-size: 13.5px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-50%) translateY(20px);
+            transition: .2s;
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- 上部: タブ / 検索 / メニュー -->
+        <header id="top">
+            <div id="tabs"></div>
+            <button id="bSearch" class="ib" aria-label="絞り込み">🔍</button>
+            <button id="bMore" class="ib" aria-label="メニュー">︙</button>
+        </header>
+        <!-- 選択中の上部 -->
+        <header id="selTop" hidden>
+            <button id="selX" class="ib" aria-label="選択をやめる">✕</button>
+            <span id="selCount"></span>
+            <button id="selAll" class="tb">全選択</button>
+        </header>
+        <!-- ドロワーのボタン / お気に入り登録 / パス表示 -->
+        <div id="pathbar">
+            <button id="bMenu" class="ib" aria-label="ドロワー">☰</button>
+            <button id="bStar" class="ib star" aria-label="お気に入り">☆</button>
+            <div id="crumbs"></div>
+        </div>
+        <div id="searchRow" hidden>
+            <input id="q" placeholder="このフォルダ内を名前で絞り込み" autocomplete="off">
+            <button id="qX" class="ib sm" aria-label="絞り込みを閉じる">✕</button>
+        </div>
+        <!-- ファイル・フォルダの一覧 -->
+        <main id="main"></main>
+        <!-- 下部操作バー -->
+        <footer id="opbar" hidden>
+            <button data-op="copy"><span class="oi">📋</span>コピー</button>
+            <button data-op="move"><span class="oi">✂️</span>移動</button>
+            <button data-op="del"><span class="oi">🗑️</span>削除</button>
+            <button data-op="ren" id="opRen"><span class="oi">✏️</span>名前変更</button>
+            <button data-op="more"><span class="oi">︙</span>その他</button>
+        </footer>
+    </div>
+
+    <div id="scrim" hidden></div>
+    <nav id="drawer" aria-label="ドロワー">
+        <div class="dscroll">
+            <div id="secs"></div>
+            <div class="dsep"></div>
+            <div class="di" id="dTrash"><span class="ic">🗑️</span>
+                <div class="tx">ゴミ箱</div>
+            </div>
+            <div class="di" id="dSet"><span class="ic">⚙️</span>
+                <div class="tx">設定</div>
+            </div>
+        </div>
+        <div class="ver" id="ver"></div>
+    </nav>
+    <div id="pop" hidden></div>
+    <div id="modal" hidden></div>
+    <div id="toast"></div>
+
+    <script>
+        'use strict';
+        /* =====================================================================
+           たるファイラー(HTML版・段階①: 画面の骨組み)
+           ・ストレージごとの読み書きは「listDir」などにまとめてあります。
+             Androidアプリ版では、ここを Kotlin 側の処理に差し替えます。
+           ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
+             「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
+           ===================================================================== */
+        const APP_VER = '2026-11-08a';
+        const KEY = 'taruFiler.v1';
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const uid = () => Math.random().toString(36).slice(2, 10);
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        const pad = n => String(n).padStart(2, '0');
+        const vib = () => {
+            try {
+                navigator.vibrate && navigator.vibrate(25);
+            }
+            catch { }
+        };
+        const SOON = 'この操作は次の段階(HTML②)で使えるようになります';
+        const APPONLY = 'Androidアプリ版で使えるようになります';
+
+        /* ===== ダミーデータ ===== */
+        const NOW = Date.now(), DAY = 864e5, GB = 2 ** 30;
+        const D = (c, ago = 3) => ({ dir: true, mtime: NOW - ago * DAY, c });
+        const Fi = (size, ago = 5) => ({ dir: false, size, mtime: NOW - ago * DAY });
+        function many(fmt, n, size, ago0) {
+            const o = {};
+            for (let i = 0; i < n; i++)
+                o[fmt(i)] = Fi(size + (i * 7919 % 13) * 137000, ago0 + i * 0.6);
+            return o;
+        }
+        const demoInt = D({
+            '.thumbnails': D({}, 40),
+            '.nomedia': Fi(0, 120),
+            'Alarms': D({}, 200),
+            'Android': D({ 'data': D({}), 'media': D({}), 'obb': D({}) }, 20),
+            'DCIM': D({
+                'Camera': D(many(i => `IMG_202610${pad(i % 28 + 1)}_${pad(8 + i % 12)}${pad(i * 7 % 60)}${pad(i * 13 % 60)}.jpg`, 24, 3200000, 0), 0),
+                'Screenshots': D(many(i => `Screenshot_202611${pad(i % 7 + 1)}_${pad(10 + i % 10)}${pad(i * 11 % 60)}${pad(i * 17 % 60)}_Chrome.jpg`, 12, 900000, 0), 0),
+            }, 0),
+            'Documents': D({ '見積書.pdf': Fi(245000, 12), 'memo.txt': Fi(1200, 2) }, 2),
+            'Download': D({
+                'manual.pdf': Fi(5300000, 1),
+                'setup.apk': Fi(48000000, 4),
+                '旅行の予定.xlsx': Fi(38000, 6),
+                'sample.zip': Fi(1200000, 9),
+                'jigsaw_backup_20261105.zip': Fi(86000000, 3),
+            }, 1),
+            'Movies': D({ 'clip_0101.mp4': Fi(152000000, 30) }, 30),
+            'Music': D({ 'song.mp3': Fi(8200000, 40) }, 40),
+            'Pictures': D({}, 50),
+        });
+        const demoSd = D({
+            'DCIM': D({ 'Camera': D(many(i => `IMG_2025${pad(i % 12 + 1)}01_120000_${i}.jpg`, 10, 4100000, 60)) }, 60),
+            'JigsawPuzzle': D({ 'jigsaw_data': D({ 'images': D({}), 'puzzles': D({}) }, 2) }, 2),
+            'Music': D({ 'album_01.flac': Fi(32000000, 90) }, 90),
+            'バックアップ': D({ '2026-10.zip': Fi(2400000000, 25), '2026-09.zip': Fi(2300000000, 55) }, 25),
+        });
+        const demoSakura = D({
+            '.ssh': D({}, 100),
+            'MailBox': D({}, 100),
+            'log': D({ 'access_log': Fi(5600000, 0), 'error_log': Fi(42000, 1) }, 0),
+            'www': D({
+                'index.html': Fi(8200, 3),
+                'css': D({ 'style.css': Fi(14000, 3) }, 3),
+                'img': D(many(i => `photo_${pad(i + 1)}.webp`, 8, 180000, 10), 10),
+                'jigsaw': D({ 'jigsaw.html': Fi(1900000, 2), 'manifest.json': Fi(700, 4) }, 2),
+            }, 2),
+        });
+        const demoGd1 = D({
+            '写真': D(many(i => `2026旅行_${pad(i + 1)}.jpg`, 6, 2800000, 20), 20),
+            '旅行': D({ '旅程.pdf': Fi(320000, 15), '予約.txt': Fi(2100, 15) }, 15),
+            'JigsawPuzzle_backup': D({ 'jigsaw_20261105.zip': Fi(86000000, 3) }, 3),
+            '書類': D({ '保証書.pdf': Fi(910000, 80) }, 80),
+        });
+        const demoGd2 = D({
+            '仕事': D({ '議事録.docx': Fi(56000, 4), '集計.xlsx': Fi(88000, 7) }, 4),
+            '共有メモ.txt': Fi(3300, 1),
+        });
+
+        /* ===== ストレージの一覧 =====
+           kind: local=端末内 / pc=PCフォルダ(HTML版のテスト用) / server=さくら等 / gdrive=Googleドライブ */
+        const STORAGES = [
+            { id: 'int', kind: 'local', icon: '📱', name: '内部ストレージ', real: '/storage/emulated/0', demo: demoInt, cap: [180 * GB, 256 * GB] },
+            { id: 'sd', kind: 'local', icon: '💾', name: 'SDカード', real: '/storage/1234-ABCD', demo: demoSd, cap: [120 * GB, 512 * GB] },
+            { id: 'pc', kind: 'pc', icon: '💻', name: 'PCフォルダ', real: '' },
+            { id: 'sakura', kind: 'server', icon: '🌐', name: 'さくら', real: '/home/sharu', demo: demoSakura },
+            { id: 'gd1', kind: 'gdrive', icon: '☁️', name: 'Googleドライブ', account: 'sharu.demo@gmail.com', real: 'マイドライブ', demo: demoGd1, cap: [6.2 * GB, 15 * GB] },
+            { id: 'gd2', kind: 'gdrive', icon: '☁️', name: 'Googleドライブ', account: 'work.demo@gmail.com', real: 'マイドライブ', demo: demoGd2, cap: [1.1 * GB, 15 * GB] },
+        ];
+        const stOf = id => STORAGES.find(s => s.id === id);
+        const acShort = a => a.slice(0, 3) + '…';
+        const stLabel = st => st.kind == 'gdrive' ? `${st.name} (${acShort(st.account)})` : st.name;
+
+        /* ===== 状態(タブ・お気に入り・表示の設定)。ブラウザ内に保存し、次に開いたときに戻します ===== */
+        function defaults() {
+            return {
+                tabs: [{ st: 'int', p: ['Download'] }],
+                cur: 0,
+                favs: [
+                    { id: uid(), name: '写真', st: 'int', p: ['DCIM', 'Camera'] },
+                    { id: uid(), name: 'スクリーンショット', st: 'int', p: ['DCIM', 'Screenshots'] },
+                    { id: uid(), name: 'ダウンロード', st: 'int', p: ['Download'] },
+                    { id: uid(), name: 'Googleドライブ (sha…)', st: 'gd1', p: [] },
+                    { id: uid(), name: 'Googleドライブ (wor…)', st: 'gd2', p: [] },
+                ],
+                secOrder: ['storage', 'fav'],
+                fold: { storage: true, fav: false },
+                view: 'list',
+                sort: { k: 'name', asc: true },
+                hidden: false,
+            };
+        }
+        let S;
+        try {
+            S = Object.assign(defaults(), JSON.parse(localStorage.getItem(KEY) || 'null') || {});
+        }
+        catch {
+            S = defaults();
+        }
+        S.tabs = (Array.isArray(S.tabs) ? S.tabs : []).filter(t => t && stOf(t.st) && Array.isArray(t.p));
+        if (!S.tabs.length)
+            S.tabs = defaults().tabs;
+        S.favs = (Array.isArray(S.favs) ? S.favs : []).filter(f => f && stOf(f.st) && Array.isArray(f.p));
+        S.cur = Math.min(Math.max(0, S.cur | 0), S.tabs.length - 1);
+        function save() {
+            try {
+                localStorage.setItem(KEY, JSON.stringify(S));
+            }
+            catch { }
+        }
+        const tab = () => S.tabs[S.cur];
+        const samePath = (a, b) => a.length == b.length && a.every((x, i) => x === b[i]);
+        const findFav = (st, p) => S.favs.find(f => f.st == st && samePath(f.p, p));
+
+        /* ===== 小さな保存箱(PCフォルダの接続情報を覚えておくため) ===== */
+        const idb = (() => {
+            let pr;
+            const open = () => pr || (pr = new Promise((res, rej) => {
+                const r = indexedDB.open('taruFiler', 1);
+                r.onupgradeneeded = () => r.result.createObjectStore('kv');
+                r.onsuccess = () => res(r.result);
+                r.onerror = () => rej(r.error);
+            }));
+            const tx = async (mode, fn) => {
+                const db = await open();
+                return new Promise((res, rej) => {
+                    const t = db.transaction('kv', mode);
+                    const q = fn(t.objectStore('kv'));
+                    t.oncomplete = () => res(q && q.result);
+                    t.onerror = () => rej(t.error);
+                });
+            };
+            return {
+                get: k => tx('readonly', s => s.get(k)),
+                set: (k, v) => tx('readwrite', s => s.put(v, k)),
+            };
+        })();
+
+        /* ===== ストレージの読み込み(アプリ版ではここを差し替えます) ===== */
+        let pcRoot = null;
+        async function pcDir(p) {
+            let h = pcRoot;
+            for (const n of p)
+                h = await h.getDirectoryHandle(n);
+            return h;
+        }
+        async function listPc(p) {
+            if (!pcRoot)
+                throw { code: 'pcnone' };
+            if (await pcRoot.queryPermission({ mode: 'readwrite' }) != 'granted')
+                throw { code: 'pcperm' };
+            let h;
+            try {
+                h = await pcDir(p);
+            }
+            catch {
+                throw { code: 'notfound' };
+            }
+            const jobs = [];
+            for await (const [name, e] of h.entries()) {
+                if (e.kind == 'directory')
+                    jobs.push(Promise.resolve({ name, dir: true, size: null, mtime: null }));
+                else
+                    jobs.push(e.getFile().then(f => ({ name, dir: false, size: f.size, mtime: f.lastModified }), () => ({ name, dir: false, size: null, mtime: null })));
+            }
+            return Promise.all(jobs);
+        }
+        async function listDir(st, p) {
+            if (st.kind == 'pc')
+                return listPc(p);
+            if (st.kind == 'server' || st.kind == 'gdrive')
+                await sleep(220); /* ネット越しの読み込みの雰囲気を出すため、少し待ちます */
+            let n = st.demo;
+            for (const s of p) {
+                n = n.c[s];
+                if (!n || !n.dir)
+                    throw { code: 'notfound' };
+            }
+            return Object.entries(n.c).map(([name, v]) => ({ name, dir: v.dir, size: v.dir ? null : v.size, mtime: v.mtime }));
+        }
+        function realPath(st, p) {
+            const base = st.kind == 'pc' ? (pcRoot ? pcRoot.name : 'PCフォルダ') : st.real;
+            return [base, ...p].join('/');
+        }
+
+        /* ===== 表示用の小物 ===== */
+        const ext = n => {
+            const i = n.lastIndexOf('.');
+            return i > 0 ? n.slice(i + 1).toLowerCase() : '';
+        };
+        const TYPES = [
+            ['🖼️', '画像', /^(jpe?g|png|gif|webp|bmp|heic|svg|ico)$/],
+            ['🎬', '動画', /^(mp4|mov|mkv|avi|webm|3gp)$/],
+            ['🎵', '音楽', /^(mp3|m4a|aac|flac|wav|ogg)$/],
+            ['📕', 'PDF', /^pdf$/],
+            ['🗜️', '圧縮ファイル', /^(zip|rar|7z|gz|tar)$/],
+            ['📦', 'アプリ(APK)', /^apk$/],
+            ['📝', '文書', /^(docx?|odt|rtf)$/],
+            ['📊', '表計算', /^(xlsx?|csv|ods)$/],
+            ['🌐', 'Webファイル', /^(html?|css|js|php|json|xml)$/],
+            ['📄', 'テキスト', /^(txt|md|log|ini|cfg)$/],
+        ];
+        function ftype(n) {
+            const e = ext(n);
+            return TYPES.find(t => t[2].test(e)) || ['📄', e ? e.toUpperCase() + 'ファイル' : 'ファイル'];
+        }
+        function fmtSize(b) {
+            if (b == null)
+                return '—';
+            const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let i = 0;
+            while (b >= 1024 && i < 4) {
+                b /= 1024;
+                i++;
+            }
+            return (i && b < 100 ? b.toFixed(1) : Math.round(b)) + ' ' + u[i];
+        }
+        function fmtDate(t) {
+            if (!t)
+                return '';
+            const d = new Date(t);
+            return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+        const COL = new Intl.Collator('ja', { numeric: true, sensitivity: 'base' });
+
+        let toastT;
+        function toast(s) {
+            const t = $('toast');
+            t.textContent = s;
+            t.classList.add('show');
+            clearTimeout(toastT);
+            toastT = setTimeout(() => t.classList.remove('show'), 2400);
+        }
+
+        /* 長押しのあとに続く「クリック」を1回だけ無視します(長押しで開いたメニューを誤って押さないため) */
+        let suppress = false;
+        document.addEventListener('pointerdown', () => suppress = false, true);
+        document.addEventListener('click', e => {
+            if (suppress) {
+                suppress = false;
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        }, true);
+
+        /* タップ(tap)と長押し(long)。PCでは右クリックも長押しと同じ扱いです */
+        function pressable(box, sel, { tap, long }) {
+            let st = null;
+            box.addEventListener('pointerdown', e => {
+                const it = e.target.closest(sel);
+                if (!it || !box.contains(it) || e.button > 0)
+                    return;
+                st = { it, x: e.clientX, y: e.clientY, id: e.pointerId };
+                st.t = setTimeout(() => {
+                    if (!st || st.done)
+                        return;
+                    st.done = true;
+                    suppress = true;
+                    vib();
+                    long(st.it, st.x, st.y);
+                }, 480);
+            });
+            box.addEventListener('pointermove', e => {
+                if (st && e.pointerId == st.id && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 10) {
+                    clearTimeout(st.t);
+                    st = null;
+                }
+            });
+            const end = () => {
+                if (st)
+                    clearTimeout(st.t);
+                st = null;
+            };
+            box.addEventListener('pointerup', end);
+            box.addEventListener('pointercancel', end);
+            box.addEventListener('contextmenu', e => {
+                const it = e.target.closest(sel);
+                if (!it || !box.contains(it))
+                    return;
+                e.preventDefault();
+                if (st && st.done)
+                    return;
+                if (st) {
+                    clearTimeout(st.t);
+                    st.done = true;
+                }
+                suppress = true;
+                long(it, e.clientX, e.clientY);
+            });
+            if (tap)
+                box.addEventListener('click', e => {
+                    const it = e.target.closest(sel);
+                    if (it && box.contains(it))
+                        tap(it, e);
+                });
+        }
+
+        /* 長押しして動かすと並べ替え(drop)、動かさずに離すとメニュー(menu)、ふつうのタップは tap */
+        function sortable(box, sel, { tap, menu, drop }) {
+            let st = null;
+            box.addEventListener('pointerdown', e => {
+                const h = e.target.closest(sel.h);
+                if (!h || !box.contains(h) || e.button > 0)
+                    return;
+                st = { h, it: h.closest(sel.it), x: e.clientX, y: e.clientY, id: e.pointerId };
+                st.t = setTimeout(() => {
+                    if (!st)
+                        return;
+                    st.armed = true;
+                    suppress = true;
+                    vib();
+                    st.it.classList.add('lift');
+                }, 450);
+            });
+            window.addEventListener('pointermove', e => {
+                if (!st || e.pointerId != st.id)
+                    return;
+                const d = Math.hypot(e.clientX - st.x, e.clientY - st.y);
+                if (!st.armed) {
+                    if (d > 10) {
+                        clearTimeout(st.t);
+                        st = null;
+                    }
+                    return;
+                }
+                if (d > 6)
+                    st.drag = true;
+                if (st.drag)
+                    place(st.it, e.clientY, sel.it);
+            });
+            window.addEventListener('pointerup', e => {
+                if (!st || e.pointerId != st.id)
+                    return;
+                clearTimeout(st.t);
+                const s = st;
+                st = null;
+                s.it.classList.remove('lift');
+                if (s.drag)
+                    drop();
+                else if (s.armed && menu)
+                    menu(s.it, e.clientX, e.clientY);
+            });
+            window.addEventListener('pointercancel', () => {
+                if (!st)
+                    return;
+                clearTimeout(st.t);
+                st.it.classList.remove('lift');
+                if (st.drag)
+                    drop();
+                st = null;
+            });
+            document.addEventListener('touchmove', e => {
+                if (st && st.armed)
+                    e.preventDefault(); /* 並べ替え中は画面がスクロールしないようにします */
+            }, { passive: false });
+            box.addEventListener('contextmenu', e => {
+                const h = e.target.closest(sel.h);
+                if (!h || !box.contains(h))
+                    return;
+                e.preventDefault();
+                if (st || !menu)
+                    return;
+                suppress = true;
+                menu(h.closest(sel.it), e.clientX, e.clientY);
+            });
+            if (tap)
+                box.addEventListener('click', e => {
+                    const h = e.target.closest(sel.h);
+                    if (h && box.contains(h))
+                        tap(h.closest(sel.it), e);
+                });
+        }
+        /* 並べ替え中: 指の位置に合わせて、離す前に並びを入れ替えて見せます */
+        function place(it, y, isel) {
+            const par = it.parentNode;
+            const sibs = [...par.children].filter(c => c !== it && c.matches(isel));
+            const before = sibs.find(c => {
+                const r = c.getBoundingClientRect();
+                return y < r.top + r.height / 2;
+            });
+            if (before) {
+                if (it.nextElementSibling !== before)
+                    par.insertBefore(it, before);
+            }
+            else if (sibs.length) {
+                const last = sibs[sibs.length - 1];
+                if (last.nextElementSibling !== it)
+                    last.after(it);
+            }
+        }
+
+        /* ===== メニュー(︙・長押し) ===== */
+        function popMenu(x, y, list, up = false) {
+            const pop = $('pop');
+            pop.innerHTML = '<div class="pm">' + list.map((m, i) => m == '-' ? '<hr>'
+                : `<button data-i="${i}"${m.dis ? ' disabled' : ''}><span class="pc">${m.chk ? '✓' : (m.ic || '')}</span>${esc(m.t)}</button>`).join('') + '</div>';
+            pop.hidden = false;
+            const pm = pop.firstChild, r = pm.getBoundingClientRect();
+            pm.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
+            pm.style.top = Math.max(8, Math.min(up ? y - r.height : y, innerHeight - r.height - 8)) + 'px'; /* up: 指定位置の上側に出します */
+            pop.onclick = e => {
+                const b = e.target.closest('button[data-i]');
+                if (e.target === pop || b)
+                    pop.hidden = true;
+                if (b)
+                    list[+b.dataset.i].act();
+            };
+        }
+
+        /* ===== ウインドウ(確認・入力・情報) ===== */
+        let closeModal = null;
+        function dialog({ title, html = '', input = null, ok = 'OK', cancel = 'キャンセル', danger = false }) {
+            return new Promise(res => {
+                const m = $('modal');
+                m.innerHTML = `<div class="dlg" role="dialog"><h3>${esc(title)}</h3><div class="bd">${html}</div>`
+                    + (input != null ? `<input id="dlgIn" value="${esc(input)}">` : '')
+                    + `<div class="bt">${cancel ? `<button data-r="0">${esc(cancel)}</button>` : ''}<button data-r="1" class="ok${danger ? ' danger' : ''}">${esc(ok)}</button></div></div>`;
+                m.hidden = false;
+                const inp = $('dlgIn');
+                const done = r => {
+                    m.hidden = true;
+                    m.innerHTML = '';
+                    closeModal = null;
+                    res(r ? (inp ? inp.value : true) : null);
+                };
+                closeModal = () => done(0);
+                if (inp) {
+                    setTimeout(() => {
+                        inp.focus();
+                        const dot = inp.value.lastIndexOf('.');
+                        inp.setSelectionRange(0, dot > 0 ? dot : inp.value.length);
+                    }, 30);
+                    inp.onkeydown = e => {
+                        if (e.key == 'Enter')
+                            done(1);
+                    };
+                }
+                m.onclick = e => {
+                    const b = e.target.closest('[data-r]');
+                    if (b)
+                        done(+b.dataset.r);
+                    else if (e.target === m)
+                        done(0);
+                };
+            });
+        }
+        const dl = rows => `<dl class="prop">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+
+        /* ===== タブ ===== */
+        function renderTabs() {
+            const el = $('tabs');
+            el.innerHTML = S.tabs.map((t, i) => {
+                const st = stOf(t.st);
+                const name = t.p.length ? t.p[t.p.length - 1] : st.name;
+                const badge = st.kind == 'gdrive' ? `<span class="bd">${esc(st.account[0].toUpperCase())}</span>` : '';
+                const close = i == S.cur && S.tabs.length > 1 ? '<span class="tx" data-x="1" aria-label="タブを閉じる">✕</span>' : '';
+                return `<div class="tab${i == S.cur ? ' on' : ''}" data-i="${i}"><span class="ti">${st.icon}${badge}</span><span class="tl">${esc(name)}</span>${close}</div>`;
+            }).join('') + '<button class="ib sm" id="tabAdd" aria-label="新しいタブ">＋</button>';
+            const on = el.querySelector('.tab.on');
+            if (on)
+                el.scrollLeft = Math.max(0, Math.min(el.scrollLeft, on.offsetLeft - 4), on.offsetLeft + on.offsetWidth - el.clientWidth + 44);
+        }
+        function switchTab(i) {
+            if (i == S.cur)
+                return;
+            S.cur = i;
+            leaveFolder();
+            save();
+            renderAll();
+        }
+        function addTab(st, p) {
+            S.tabs.push({ st, p: [...p] });
+            switchTab(S.tabs.length - 1);
+        }
+        function closeTab(i) {
+            if (S.tabs.length < 2) {
+                toast('最後のタブは閉じられません');
+                return;
+            }
+            S.tabs.splice(i, 1);
+            if (i < S.cur || S.cur >= S.tabs.length)
+                S.cur--;
+            leaveFolder();
+            save();
+            renderAll();
+        }
+        function tabMenu(it, x, y) {
+            const i = +it.dataset.i, t = S.tabs[i];
+            popMenu(x, y, [
+                { t: 'このタブを複製', ic: '⧉', act: () => { S.tabs.splice(i + 1, 0, { st: t.st, p: [...t.p] }); S.cur = i; switchTab(i + 1); } },
+                { t: 'このタブを閉じる', ic: '✕', dis: S.tabs.length < 2, act: () => closeTab(i) },
+                { t: 'ほかのタブを閉じる', dis: S.tabs.length < 2, act: () => { S.tabs = [t]; S.cur = 0; leaveFolder(); save(); renderAll(); } },
+            ]);
+        }
+
+        /* ===== パス表示とお気に入り登録 ===== */
+        function renderPath() {
+            const t = tab(), st = stOf(t.st), fav = findFav(t.st, t.p);
+            const b = $('bStar');
+            b.textContent = fav ? '★' : '☆';
+            b.classList.toggle('on', !!fav);
+            const parts = [`<button class="cr" data-d="0">${st.icon} ${esc(stLabel(st))}</button>`];
+            t.p.forEach((s, i) => parts.push(`<span class="cs">›</span><button class="cr" data-d="${i + 1}">${esc(s)}</button>`));
+            const c = $('crumbs');
+            c.innerHTML = parts.join('');
+            c.scrollLeft = c.scrollWidth;
+        }
+        function toggleStar() {
+            const t = tab(), f = findFav(t.st, t.p);
+            if (f) {
+                S.favs = S.favs.filter(x => x !== f);
+                toast('お気に入りから外しました');
+            }
+            else {
+                addFav(t.st, t.p);
+                toast('お気に入りに登録しました');
+            }
+            save();
+            renderPath();
+            renderDrawer();
+        }
+        function addFav(stId, p) {
+            if (findFav(stId, p))
+                return;
+            S.favs.push({ id: uid(), name: p.length ? p[p.length - 1] : stLabel(stOf(stId)), st: stId, p: [...p] });
+        }
+        async function showFullPath() {
+            const t = tab(), path = realPath(stOf(t.st), t.p);
+            if (await dialog({ title: '現在の場所', html: `<code>${esc(path)}</code>`, ok: 'コピー', cancel: '閉じる' })) {
+                try {
+                    await navigator.clipboard.writeText(path);
+                    toast('コピーしました');
+                }
+                catch {
+                    toast('コピーできませんでした');
+                }
+            }
+        }
+
+        /* ===== フォルダの移動 ===== */
+        function leaveFolder() {
+            exitSelect();
+            query = '';
+            $('q').value = '';
+            $('searchRow').hidden = true;
+        }
+        function go(stId, p) {
+            const t = tab();
+            t.st = stId;
+            t.p = [...p];
+            t.sc = 0;
+            leaveFolder();
+            save();
+            renderAll();
+        }
+
+        /* ===== メイン表示領域 ===== */
+        let items = [], shown = [], mainTok = 0, loading = false, query = '';
+        const sel = new Set();
+        let selMode = false;
+        async function renderMain() {
+            const tok = ++mainTok, t = tab(), st = stOf(t.st), main = $('main');
+            loading = true;
+            const lt = setTimeout(() => {
+                if (tok == mainTok)
+                    main.innerHTML = '<div class="msg">読み込み中…</div>';
+            }, 120);
+            try {
+                const r = await listDir(st, t.p);
+                if (tok != mainTok)
+                    return;
+                items = r;
+                clearTimeout(lt);
+                draw();
+                main.scrollTop = t.sc || 0;
+            }
+            catch (e) {
+                clearTimeout(lt);
+                if (tok != mainTok)
+                    return;
+                items = [];
+                shown = [];
+                showErr(e, st);
+            }
+            requestAnimationFrame(() => loading = false);
+        }
+        function showErr(e, st) {
+            const code = e && e.code;
+            let h;
+            if (code == 'pcnone')
+                h = 'PCのテスト用フォルダがまだ選ばれていません。<br>中身を消しても困らない、<b>テスト用のフォルダ</b>を選んでください。<br><button class="btn" data-act="pick">フォルダを選ぶ</button>';
+            else if (code == 'pcperm')
+                h = `前回のフォルダ「${esc(pcRoot.name)}」に接続します。<br><button class="btn" data-act="perm">接続する</button><br><button class="btn" data-act="pick" style="background:var(--panel2);color:var(--tx)">別のフォルダを選ぶ</button>`;
+            else if (code == 'notfound')
+                h = `このフォルダは見つかりません。<br><button class="btn" data-act="root">${st.icon} ${esc(stLabel(st))}の一番上へ</button>`;
+            else
+                h = '読み込めませんでした。';
+            $('main').innerHTML = `<div class="msg">${h}</div>`;
+        }
+        function visible() {
+            let a = items.filter(x => S.hidden || !x.name.startsWith('.'));
+            if (query) {
+                const q = query.toLowerCase();
+                a = a.filter(x => x.name.toLowerCase().includes(q));
+            }
+            const { k, asc } = S.sort, m = asc ? 1 : -1;
+            const by = (x, y) => k == 'date' ? (x.mtime || 0) - (y.mtime || 0)
+                : k == 'size' ? (x.size || 0) - (y.size || 0)
+                    : k == 'type' ? COL.compare(ext(x.name), ext(y.name))
+                        : 0;
+            return a.sort((x, y) => (y.dir - x.dir) || m * (by(x, y) || COL.compare(x.name, y.name)));
+        }
+        function meta(x) {
+            if (x.dir)
+                return x.mtime ? fmtDate(x.mtime) : 'フォルダ';
+            return [fmtDate(x.mtime), fmtSize(x.size)].filter(Boolean).join('・');
+        }
+        function draw() {
+            const main = $('main');
+            shown = visible();
+            if (!shown.length) {
+                main.innerHTML = `<div class="msg">${query ? '一致するものはありません' : 'このフォルダは空です'}</div>`;
+                return;
+            }
+            main.innerHTML = `<div class="${S.view}${selMode ? ' selmode' : ''}">` + shown.map(x => {
+                const s = sel.has(x.name);
+                return `<div class="it${x.name.startsWith('.') ? ' hid' : ''}${s ? ' sel' : ''}" data-n="${esc(x.name)}">`
+                    + `<span class="ck">${s ? '✓' : ''}</span><span class="ic">${x.dir ? '📁' : ftype(x.name)[0]}</span>`
+                    + `<div class="tx"><div class="nm">${esc(x.name)}</div><div class="mt">${meta(x)}</div></div></div>`;
+            }).join('') + '</div>';
+        }
+        async function openFile(x) {
+            const t = tab(), st = stOf(t.st);
+            if (st.kind != 'pc') {
+                toast('ファイルを開くのは、' + APPONLY);
+                return;
+            }
+            try {
+                const f = await (await (await pcDir(t.p)).getFileHandle(x.name)).getFile();
+                const url = URL.createObjectURL(f);
+                window.open(url, '_blank');
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            }
+            catch {
+                toast('ファイルを開けませんでした');
+            }
+        }
+
+        /* ===== 選択モード ===== */
+        function updateSel() {
+            if (!sel.size)
+                selMode = false;
+            $('top').hidden = selMode;
+            $('selTop').hidden = !selMode;
+            $('opbar').hidden = !selMode;
+            $('selCount').textContent = `${sel.size}件選択中`;
+            $('selAll').textContent = shown.length && sel.size == shown.length ? '全解除' : '全選択';
+            $('opRen').disabled = sel.size != 1;
+            const g = $('main').firstElementChild;
+            if (g)
+                g.classList.toggle('selmode', selMode);
+            for (const el of $('main').querySelectorAll('.it')) {
+                const s = sel.has(el.dataset.n);
+                el.classList.toggle('sel', s);
+                el.querySelector('.ck').textContent = s ? '✓' : '';
+            }
+            drTop();
+        }
+        function toggleSel(name) {
+            if (sel.has(name))
+                sel.delete(name);
+            else
+                sel.add(name);
+            selMode = sel.size > 0;
+            updateSel();
+        }
+        function exitSelect() {
+            sel.clear();
+            selMode = false;
+            updateSel();
+        }
+        function selectAll() {
+            if (!shown.length)
+                return;
+            if (selMode && sel.size == shown.length) {
+                exitSelect();
+                return;
+            }
+            shown.forEach(x => sel.add(x.name));
+            selMode = true;
+            updateSel();
+        }
+        const selItems = () => shown.filter(x => sel.has(x.name));
+
+        function showProps() {
+            const t = tab(), st = stOf(t.st), list = selItems();
+            if (!list.length)
+                return;
+            let html;
+            if (list.length == 1) {
+                const x = list[0];
+                html = dl([
+                    ['名前', x.name],
+                    ['種類', x.dir ? 'フォルダ' : ftype(x.name)[1]],
+                    ['場所', realPath(st, t.p)],
+                    ['サイズ', x.dir ? '—' : `${fmtSize(x.size)}(${(x.size || 0).toLocaleString()} バイト)`],
+                    ['更新日時', x.mtime ? fmtDate(x.mtime) : '—'],
+                ]);
+            }
+            else {
+                const nd = list.filter(x => x.dir).length, nf = list.length - nd;
+                const tot = list.reduce((s, x) => s + (x.size || 0), 0);
+                html = dl([
+                    ['選択', `${list.length}件(フォルダ ${nd}・ファイル ${nf})`],
+                    ['場所', realPath(st, t.p)],
+                    ['合計サイズ', fmtSize(tot) + (nd ? '(フォルダの中身は含みません)' : '')],
+                ]);
+            }
+            dialog({ title: 'プロパティ', html, ok: '閉じる', cancel: null });
+        }
+        function opMore(x, y, up) {
+            const list = selItems(), one = list.length == 1 ? list[0] : null;
+            popMenu(x, y, [
+                { t: '共有', ic: '📤', act: () => toast('共有は、' + APPONLY) },
+                { t: 'ほかのアプリで開く', ic: '↗', dis: !one || one.dir, act: () => openFile(one) },
+                { t: 'お気に入りに追加', ic: '★', dis: !one || !one.dir, act: () => { const t = tab(); addFav(t.st, [...t.p, one.name]); save(); renderDrawer(); toast('お気に入りに登録しました'); } },
+                { t: 'zipに圧縮', ic: '🗜️', act: () => toast(SOON) },
+                '-',
+                { t: 'プロパティ', ic: 'ℹ️', act: showProps },
+            ], up);
+        }
+
+        /* ===== ︙メニュー ===== */
+        function moreMenu() {
+            const r = $('bMore').getBoundingClientRect(), x = r.right, y = r.bottom;
+            popMenu(x, y, [
+                { t: '新しいフォルダ', ic: '📁', act: () => toast(SOON) },
+                '-',
+                { t: '一覧表示', chk: S.view == 'list', act: () => setView('list') },
+                { t: 'アイコン表示', chk: S.view == 'grid', act: () => setView('grid') },
+                { t: '並べ替え…', ic: '↕', act: () => sortMenu(x, y) },
+                { t: '隠しファイルを表示', chk: S.hidden, act: () => { S.hidden = !S.hidden; save(); draw(); updateSel(); } },
+                '-',
+                { t: '全選択', ic: '☑', act: selectAll },
+                { t: '更新', ic: '⟳', act: () => renderMain() },
+                { t: '設定', ic: '⚙️', act: openSettings },
+            ]);
+        }
+        function setView(v) {
+            S.view = v;
+            save();
+            draw();
+            updateSel();
+        }
+        function sortMenu(x, y) {
+            const s = S.sort;
+            const k = key => () => { s.k = key; save(); draw(); updateSel(); };
+            popMenu(x, y, [
+                { t: '名前', chk: s.k == 'name', act: k('name') },
+                { t: '更新日時', chk: s.k == 'date', act: k('date') },
+                { t: 'サイズ', chk: s.k == 'size', act: k('size') },
+                { t: '種類', chk: s.k == 'type', act: k('type') },
+                '-',
+                { t: '昇順', chk: s.asc, act: () => { s.asc = true; save(); draw(); updateSel(); } },
+                { t: '降順', chk: !s.asc, act: () => { s.asc = false; save(); draw(); updateSel(); } },
+            ]);
+        }
+        function openSettings() {
+            closeDrawer();
+            dialog({ title: '⚙️ 設定', html: `設定の項目は、これから追加していきます。<br><br>たるファイラー(HTML版)<br>バージョン: ${APP_VER}`, ok: '閉じる', cancel: null });
+        }
+
+        /* ===== ドロワー ===== */
+        function drTop() {
+            document.documentElement.style.setProperty('--drTop', $('pathbar').getBoundingClientRect().bottom + 'px');
+        }
+        const drawerOpen = () => $('drawer').classList.contains('open');
+        function openDrawer() {
+            drTop();
+            renderDrawer();
+            $('drawer').classList.add('open');
+            $('scrim').hidden = false;
+        }
+        function closeDrawer() {
+            $('drawer').classList.remove('open');
+            $('scrim').hidden = true;
+        }
+        function capHtml(st) {
+            if (st.cap) {
+                const [u, t] = st.cap;
+                return `<div class="sub">${fmtSize(u)} / ${fmtSize(t)} 使用</div><div class="bar"><i style="width:${Math.round(u / t * 100)}%"></i></div>`;
+            }
+            if (st.kind == 'pc')
+                return `<div class="sub">${pcRoot ? esc(pcRoot.name) : '未接続'}(HTML版のテスト用)</div>`;
+            if (st.kind == 'server')
+                return '<div class="sub">SFTP(デモ)</div>';
+            return '';
+        }
+        function secHtml(key, title, body) {
+            const f = !!S.fold[key];
+            return `<div class="sec" data-k="${key}"><button class="sech"><span class="ar">${f ? '▸' : '▾'}</span>${title}</button><div class="secb"${f ? ' hidden' : ''}>${body}</div></div>`;
+        }
+        function renderDrawer() {
+            const t = tab();
+            const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${st.icon}</span><div class="tx"><div class="nm">${esc(stLabel(st))}</div>${capHtml(st)}</div></div>`).join('')
+                + '<div class="di add"><span class="ic">＋</span><div class="tx">サーバーを追加</div></div>';
+            const favBody = S.favs.length ? S.favs.map(f => {
+                const st = stOf(f.st);
+                return `<div class="di fav${t.st == f.st && samePath(t.p, f.p) ? ' cur' : ''}" data-id="${f.id}"><span class="ic fs">★</span><div class="tx"><div class="nm">${esc(f.name)}</div><div class="sub">${st.icon} ${esc(f.p.join('/') || stLabel(st))}</div></div></div>`;
+            }).join('') : '<div class="dnote">パス表示の ☆ をタップすると、今いる場所を登録できます。</div>';
+            const secs = { storage: secHtml('storage', 'ストレージ', stBody), fav: secHtml('fav', 'お気に入り', favBody) };
+            $('secs').innerHTML = S.secOrder.map(k => secs[k]).join('');
+            $('ver').textContent = `たるファイラー(HTML版) ${APP_VER}`;
+        }
+        function favMenu(it, x, y) {
+            const f = S.favs.find(v => v.id == it.dataset.id);
+            if (!f)
+                return;
+            popMenu(x, y, [
+                { t: '新しいタブで開く', ic: '⧉', act: () => { closeDrawer(); addTab(f.st, f.p); } },
+                { t: '名前の変更', ic: '✏️', act: async () => {
+                    const v = await dialog({ title: 'お気に入りの名前の変更', input: f.name, ok: '変更' });
+                    if (v && v.trim()) {
+                        f.name = v.trim();
+                        save();
+                        renderDrawer();
+                    }
+                } },
+                { t: 'お気に入りから削除', ic: '🗑️', act: () => { S.favs = S.favs.filter(v => v !== f); save(); renderDrawer(); renderPath(); toast('お気に入りから外しました'); } },
+            ]);
+        }
+        function storageMenu(it, x, y) {
+            if (!it.dataset.st)
+                return;
+            const st = stOf(it.dataset.st);
+            const list = [{ t: '新しいタブで開く', ic: '⧉', act: () => { closeDrawer(); addTab(st.id, []); } }];
+            if (st.kind == 'pc')
+                list.push({ t: '別のフォルダを選ぶ', ic: '📂', act: pickPc });
+            if (st.kind == 'server')
+                list.push({ t: '接続の設定', ic: '⚙️', act: () => toast('サーバーの接続は、' + APPONLY) });
+            popMenu(x, y, list);
+        }
+
+        /* ===== PCフォルダ(HTML版のテスト用) ===== */
+        async function pickPc() {
+            if (!window.showDirectoryPicker) {
+                toast('このブラウザではフォルダを選べません(PCのChromeで開いてください)');
+                return;
+            }
+            try {
+                pcRoot = await window.showDirectoryPicker({ id: 'taruFilerPc', mode: 'readwrite' });
+                await idb.set('pcRoot', pcRoot).catch(() => 0);
+                if (tab().st == 'pc')
+                    tab().p = [];
+                save();
+                renderAll();
+            }
+            catch (e) {
+                if (e.name != 'AbortError')
+                    toast('フォルダを選べませんでした');
+            }
+        }
+        async function permPc() {
+            try {
+                if (await pcRoot.requestPermission({ mode: 'readwrite' }) == 'granted')
+                    renderAll();
+            }
+            catch {
+                toast('接続できませんでした');
+            }
+        }
+
+        /* ===== まとめて描き直し ===== */
+        function renderAll() {
+            renderTabs();
+            renderPath();
+            renderMain();
+            if (drawerOpen())
+                renderDrawer();
+            updateSel();
+        }
+
+        /* ===== 操作の割り当て ===== */
+        function wire() {
+            pressable($('tabs'), '.tab, #tabAdd', {
+                tap: (it, e) => {
+                    if (it.id == 'tabAdd')
+                        addTab(tab().st, tab().p);
+                    else if (e.target.closest('[data-x]'))
+                        closeTab(+it.dataset.i);
+                    else
+                        switchTab(+it.dataset.i);
+                },
+                long: (it, x, y) => {
+                    if (it.id != 'tabAdd')
+                        tabMenu(it, x, y);
+                },
+            });
+            pressable($('crumbs'), '.cr', {
+                tap: it => {
+                    const t = tab(), d = +it.dataset.d;
+                    if (d < t.p.length)
+                        go(t.st, t.p.slice(0, d));
+                },
+                long: () => showFullPath(),
+            });
+            $('bStar').onclick = toggleStar;
+            $('bMenu').onclick = () => drawerOpen() ? closeDrawer() : openDrawer();
+            $('scrim').onclick = closeDrawer;
+            $('bMore').onclick = moreMenu;
+            $('bSearch').onclick = () => {
+                const r = $('searchRow');
+                r.hidden = !r.hidden;
+                if (!r.hidden)
+                    $('q').focus();
+                else {
+                    query = '';
+                    $('q').value = '';
+                    draw();
+                    updateSel();
+                }
+            };
+            $('q').oninput = () => {
+                query = $('q').value;
+                draw();
+                updateSel();
+            };
+            $('qX').onclick = () => $('bSearch').onclick();
+
+            const main = $('main');
+            pressable(main, '.it', {
+                tap: it => {
+                    const x = shown.find(v => v.name == it.dataset.n);
+                    if (!x)
+                        return;
+                    if (selMode)
+                        toggleSel(x.name);
+                    else if (x.dir)
+                        go(tab().st, [...tab().p, x.name]);
+                    else
+                        openFile(x);
+                },
+                long: it => {
+                    if (!sel.has(it.dataset.n) || !selMode)
+                        toggleSel(it.dataset.n);
+                },
+            });
+            main.addEventListener('click', e => {
+                const b = e.target.closest('[data-act]');
+                if (!b)
+                    return;
+                const a = b.dataset.act;
+                if (a == 'pick')
+                    pickPc();
+                else if (a == 'perm')
+                    permPc();
+                else if (a == 'root')
+                    go(tab().st, []);
+            });
+            main.addEventListener('scroll', () => {
+                if (!loading)
+                    tab().sc = main.scrollTop;
+            }, { passive: true });
+
+            $('selX').onclick = exitSelect;
+            $('selAll').onclick = selectAll;
+            $('opbar').onclick = e => {
+                const b = e.target.closest('[data-op]');
+                if (!b || b.disabled)
+                    return;
+                if (b.dataset.op == 'more') {
+                    const r = b.getBoundingClientRect();
+                    opMore(r.right, r.top - 4, true);
+                }
+                else
+                    toast(SOON);
+            };
+
+            /* ドロワー: 見出しタップで格納/展開・長押しで入れ替え、お気に入りは長押しで並べ替え/メニュー */
+            const secs = $('secs');
+            sortable(secs, { h: '.sech', it: '.sec' }, {
+                tap: it => {
+                    const k = it.dataset.k;
+                    S.fold[k] = !S.fold[k];
+                    save();
+                    renderDrawer();
+                },
+                drop: () => {
+                    S.secOrder = [...secs.querySelectorAll('.sec')].map(e => e.dataset.k);
+                    save();
+                    renderDrawer();
+                },
+            });
+            sortable(secs, { h: '.fav', it: '.fav' }, {
+                tap: it => {
+                    const f = S.favs.find(v => v.id == it.dataset.id);
+                    if (f) {
+                        closeDrawer();
+                        go(f.st, f.p);
+                    }
+                },
+                menu: favMenu,
+                drop: () => {
+                    const ids = [...secs.querySelectorAll('.fav')].map(e => e.dataset.id);
+                    S.favs = ids.map(id => S.favs.find(f => f.id == id)).filter(Boolean);
+                    save();
+                    renderDrawer();
+                },
+            });
+            pressable(secs, '.di.st, .di.add', {
+                tap: it => {
+                    if (it.classList.contains('add')) {
+                        toast('サーバーの追加は、' + APPONLY);
+                        return;
+                    }
+                    closeDrawer();
+                    go(it.dataset.st, []);
+                },
+                long: storageMenu,
+            });
+            $('dTrash').onclick = () => toast('ゴミ箱は、' + SOON.replace('この操作は', ''));
+            $('dSet').onclick = openSettings;
+
+            /* キーボード(PCで試すとき用): Esc=閉じる / Backspace=1つ上の階層へ */
+            document.addEventListener('keydown', e => {
+                const typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+                if (e.key == 'Escape') {
+                    if (!$('pop').hidden)
+                        $('pop').hidden = true;
+                    else if (closeModal)
+                        closeModal();
+                    else if (drawerOpen())
+                        closeDrawer();
+                    else if (!$('searchRow').hidden)
+                        $('bSearch').onclick();
+                    else if (selMode)
+                        exitSelect();
+                }
+                else if (e.key == 'Backspace' && !typing && !closeModal && tab().p.length)
+                    go(tab().st, tab().p.slice(0, -1));
+            });
+            window.addEventListener('resize', drTop);
+            window.addEventListener('pagehide', save);
+            document.addEventListener('visibilitychange', save);
+        }
+
+        /* ===== 起動 ===== */
+        (async () => {
+            try {
+                pcRoot = (await idb.get('pcRoot')) || null;
+            }
+            catch { }
+            wire();
+            renderAll();
+            drTop();
+        })();
+    </script>
+</body>
+
+</html>
