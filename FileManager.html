@@ -227,14 +227,28 @@
             color: var(--star);
         }
 
+        /* ☆は右端に固定し、パスとの間に細い区切り線を入れます */
+        #bStar {
+            margin-left: 2px;
+            border-left: 1px solid var(--line);
+            border-radius: 0 10px 10px 0;
+        }
+
         #crumbs {
             flex: 1;
+            min-width: 0;
             display: flex;
             align-items: center;
             height: 46px;
             overflow-x: auto;
             white-space: nowrap;
             scrollbar-width: none;
+        }
+
+        /* 頭の部分が隠れているときは、左端をぼかします(右へスワイプすると見えます) */
+        #crumbs.fadeL {
+            -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
+            mask-image: linear-gradient(to right, transparent, #000 28px);
         }
 
         #crumbs::-webkit-scrollbar {
@@ -470,7 +484,7 @@
             z-index: 21;
             display: flex;
             flex-direction: column;
-            width: min(82vw, 320px);
+            width: min(70vw, 260px);
             background: var(--panel);
             box-shadow: var(--shadow);
             transform: translateX(-104%);
@@ -772,8 +786,8 @@
         <!-- ドロワーのボタン / お気に入り登録 / パス表示 -->
         <div id="pathbar">
             <button id="bMenu" class="ib" aria-label="ドロワー">☰</button>
-            <button id="bStar" class="ib star" aria-label="お気に入り">☆</button>
             <div id="crumbs"></div>
+            <button id="bStar" class="ib star" aria-label="お気に入り">☆</button>
         </div>
         <div id="searchRow" hidden>
             <input id="q" placeholder="このフォルダ内を名前で絞り込み" autocomplete="off">
@@ -818,7 +832,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-08a';
+        const APP_VER = '2026-11-08b';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -904,8 +918,10 @@
             { id: 'gd2', kind: 'gdrive', icon: '☁️', name: 'Googleドライブ', account: 'work.demo@gmail.com', real: 'マイドライブ', demo: demoGd2, cap: [1.1 * GB, 15 * GB] },
         ];
         const stOf = id => STORAGES.find(s => s.id === id);
-        const acShort = a => a.slice(0, 3) + '…';
-        const stLabel = st => st.kind == 'gdrive' ? `${st.name} (${acShort(st.account)})` : st.name;
+        /* Googleドライブのアカウントは「@」より前だけを表示します */
+        const acName = st => st.account.split('@')[0];
+        /* パス表示の先頭・ドロワーの場所の表記(Googleドライブはアカウント名、ほかはストレージ名) */
+        const rootLabel = st => st.kind == 'gdrive' ? acName(st) : st.name;
 
         /* ===== 状態(タブ・お気に入り・表示の設定)。ブラウザ内に保存し、次に開いたときに戻します ===== */
         function defaults() {
@@ -916,8 +932,8 @@
                     { id: uid(), name: '写真', st: 'int', p: ['DCIM', 'Camera'] },
                     { id: uid(), name: 'スクリーンショット', st: 'int', p: ['DCIM', 'Screenshots'] },
                     { id: uid(), name: 'ダウンロード', st: 'int', p: ['Download'] },
-                    { id: uid(), name: 'Googleドライブ (sha…)', st: 'gd1', p: [] },
-                    { id: uid(), name: 'Googleドライブ (wor…)', st: 'gd2', p: [] },
+                    { id: uid(), name: 'Googleドライブ', st: 'gd1', p: [] },
+                    { id: uid(), name: 'Googleドライブ', st: 'gd2', p: [] },
                 ],
                 secOrder: ['storage', 'fav'],
                 fold: { storage: true, fav: false },
@@ -938,6 +954,11 @@
             S.tabs = defaults().tabs;
         S.favs = (Array.isArray(S.favs) ? S.favs : []).filter(f => f && stOf(f.st) && Array.isArray(f.p));
         S.cur = Math.min(Math.max(0, S.cur | 0), S.tabs.length - 1);
+        /* 以前の既定の名前「Googleドライブ (sha…)」は「Googleドライブ」に直します(名前を変えていた場合はそのまま) */
+        S.favs.forEach(f => {
+            if (/^Googleドライブ \(.{3}…\)$/.test(f.name))
+                f.name = 'Googleドライブ';
+        });
         function save() {
             try {
                 localStorage.setItem(KEY, JSON.stringify(S));
@@ -947,6 +968,25 @@
         const tab = () => S.tabs[S.cur];
         const samePath = (a, b) => a.length == b.length && a.every((x, i) => x === b[i]);
         const findFav = (st, p) => S.favs.find(f => f.st == st && samePath(f.p, p));
+        /* タブの名前: 開いたお気に入りの名前(またはストレージ名)で固定。Googleドライブは「Googleドライブ」で固定
+           タブが覚えるもの: st / p(場所)・fav(開いたお気に入りのID)・from(開いたストレージ「st:〇〇」)・name(名前) */
+        S.tabs.forEach(t => {
+            if (t.name != null)
+                return;
+            const f = findFav(t.st, t.p);
+            if (f) {
+                t.fav = f.id;
+                t.name = f.name;
+            }
+            else {
+                t.from = 'st:' + t.st;
+                t.name = stOf(t.st).name;
+            }
+        });
+        const tabName = t => {
+            const st = stOf(t.st);
+            return st.kind == 'gdrive' ? st.name : (t.name || st.name);
+        };
 
         /* ===== 小さな保存箱(PCフォルダの接続情報を覚えておくため) ===== */
         const idb = (() => {
@@ -1287,7 +1327,7 @@
             const el = $('tabs');
             el.innerHTML = S.tabs.map((t, i) => {
                 const st = stOf(t.st);
-                const name = t.p.length ? t.p[t.p.length - 1] : st.name;
+                const name = tabName(t);
                 const badge = st.kind == 'gdrive' ? `<span class="bd">${esc(st.account[0].toUpperCase())}</span>` : '';
                 const close = i == S.cur && S.tabs.length > 1 ? '<span class="tx" data-x="1" aria-label="タブを閉じる">✕</span>' : '';
                 return `<div class="tab${i == S.cur ? ' on' : ''}" data-i="${i}"><span class="ti">${st.icon}${badge}</span><span class="tl">${esc(name)}</span>${close}</div>`;
@@ -1304,10 +1344,32 @@
             save();
             renderAll();
         }
-        function addTab(st, p) {
-            S.tabs.push({ st, p: [...p] });
-            switchTab(S.tabs.length - 1);
+        /* タブを増やす(元のタブの名前などを引き継ぎます) */
+        function addTab(t, at = S.tabs.length) {
+            S.tabs.splice(at, 0, { st: t.st, p: [...t.p], fav: t.fav, from: t.from, name: t.name });
+            if (at <= S.cur)
+                S.cur++;
+            switchTab(at);
         }
+        /* ドロワーから開く: 同じお気に入り(ストレージ)のタブがあればそこへ切り替え、なければ新しいタブで開きます。
+           here=true のときは今のタブで開きます(タブの名前も変わります) */
+        function openSrc(src, here) {
+            if (here) {
+                const t = tab();
+                t.fav = src.fav;
+                t.from = src.from;
+                t.name = src.name;
+                go(src.st, src.p);
+                return;
+            }
+            const i = S.tabs.findIndex(t => src.fav ? t.fav == src.fav : t.from == src.from);
+            if (i >= 0)
+                switchTab(i);
+            else
+                addTab(src);
+        }
+        const favSrc = f => ({ st: f.st, p: f.p, fav: f.id, from: undefined, name: f.name });
+        const stSrc = st => ({ st: st.id, p: [], fav: undefined, from: 'st:' + st.id, name: st.name });
         function closeTab(i) {
             if (S.tabs.length < 2) {
                 toast('最後のタブは閉じられません');
@@ -1323,7 +1385,7 @@
         function tabMenu(it, x, y) {
             const i = +it.dataset.i, t = S.tabs[i];
             popMenu(x, y, [
-                { t: 'このタブを複製', ic: '⧉', act: () => { S.tabs.splice(i + 1, 0, { st: t.st, p: [...t.p] }); S.cur = i; switchTab(i + 1); } },
+                { t: 'このタブを複製', ic: '⧉', act: () => addTab(t, i + 1) },
                 { t: 'このタブを閉じる', ic: '✕', dis: S.tabs.length < 2, act: () => closeTab(i) },
                 { t: 'ほかのタブを閉じる', dis: S.tabs.length < 2, act: () => { S.tabs = [t]; S.cur = 0; leaveFolder(); save(); renderAll(); } },
             ]);
@@ -1335,12 +1397,14 @@
             const b = $('bStar');
             b.textContent = fav ? '★' : '☆';
             b.classList.toggle('on', !!fav);
-            const parts = [`<button class="cr" data-d="0">${st.icon} ${esc(stLabel(st))}</button>`];
+            const parts = [`<button class="cr" data-d="0">${st.icon} ${esc(rootLabel(st))}</button>`];
             t.p.forEach((s, i) => parts.push(`<span class="cs">›</span><button class="cr" data-d="${i + 1}">${esc(s)}</button>`));
             const c = $('crumbs');
             c.innerHTML = parts.join('');
             c.scrollLeft = c.scrollWidth;
+            fadeCrumbs();
         }
+        const fadeCrumbs = () => $('crumbs').classList.toggle('fadeL', $('crumbs').scrollLeft > 2);
         function toggleStar() {
             const t = tab(), f = findFav(t.st, t.p);
             if (f) {
@@ -1358,7 +1422,7 @@
         function addFav(stId, p) {
             if (findFav(stId, p))
                 return;
-            S.favs.push({ id: uid(), name: p.length ? p[p.length - 1] : stLabel(stOf(stId)), st: stId, p: [...p] });
+            S.favs.push({ id: uid(), name: p.length ? p[p.length - 1] : stOf(stId).name, st: stId, p: [...p] });
         }
         async function showFullPath() {
             const t = tab(), path = realPath(stOf(t.st), t.p);
@@ -1428,7 +1492,7 @@
             else if (code == 'pcperm')
                 h = `前回のフォルダ「${esc(pcRoot.name)}」に接続します。<br><button class="btn" data-act="perm">接続する</button><br><button class="btn" data-act="pick" style="background:var(--panel2);color:var(--tx)">別のフォルダを選ぶ</button>`;
             else if (code == 'notfound')
-                h = `このフォルダは見つかりません。<br><button class="btn" data-act="root">${st.icon} ${esc(stLabel(st))}の一番上へ</button>`;
+                h = `このフォルダは見つかりません。<br><button class="btn" data-act="root">${st.icon} ${esc(rootLabel(st))}の一番上へ</button>`;
             else
                 h = '読み込めませんでした。';
             $('main').innerHTML = `<div class="msg">${h}</div>`;
@@ -1638,28 +1702,45 @@
         }
         function renderDrawer() {
             const t = tab();
-            const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${st.icon}</span><div class="tx"><div class="nm">${esc(stLabel(st))}</div>${capHtml(st)}</div></div>`).join('')
+            const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${st.icon}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : ''}${capHtml(st)}</div></div>`).join('')
                 + '<div class="di add"><span class="ic">＋</span><div class="tx">サーバーを追加</div></div>';
             const favBody = S.favs.length ? S.favs.map(f => {
                 const st = stOf(f.st);
-                return `<div class="di fav${t.st == f.st && samePath(t.p, f.p) ? ' cur' : ''}" data-id="${f.id}"><span class="ic fs">★</span><div class="tx"><div class="nm">${esc(f.name)}</div><div class="sub">${st.icon} ${esc(f.p.join('/') || stLabel(st))}</div></div></div>`;
+                const where = (st.kind == 'gdrive' ? [acName(st), ...f.p] : f.p).join('/') || st.name;
+                return `<div class="di fav${t.st == f.st && samePath(t.p, f.p) ? ' cur' : ''}" data-id="${f.id}"><span class="ic fs">★</span><div class="tx"><div class="nm">${esc(f.name)}</div><div class="sub" data-ic="${st.icon}" data-full="${esc(where)}">${st.icon} ${esc(where)}</div></div></div>`;
             }).join('') : '<div class="dnote">パス表示の ☆ をタップすると、今いる場所を登録できます。</div>';
             const secs = { storage: secHtml('storage', 'ストレージ', stBody), fav: secHtml('fav', 'お気に入り', favBody) };
             $('secs').innerHTML = S.secOrder.map(k => secs[k]).join('');
             $('ver').textContent = `たるファイラー(HTML版) ${APP_VER}`;
+            fitHead();
+        }
+        /* お気に入りの場所が入りきらないときは、頭の部分を「…/」で省略して、今いる側を残します */
+        function fitHead() {
+            for (const el of $('secs').querySelectorAll('.sub[data-full]')) {
+                if (!el.clientWidth)
+                    continue;
+                const segs = el.dataset.full.split('/');
+                for (let k = 1; el.scrollWidth > el.clientWidth && k < segs.length; k++)
+                    el.textContent = el.dataset.ic + ' …/' + segs.slice(k).join('/');
+            }
         }
         function favMenu(it, x, y) {
             const f = S.favs.find(v => v.id == it.dataset.id);
             if (!f)
                 return;
             popMenu(x, y, [
-                { t: '新しいタブで開く', ic: '⧉', act: () => { closeDrawer(); addTab(f.st, f.p); } },
+                { t: '今のタブで開く', ic: '↩', act: () => openSrc(favSrc(f), true) },
                 { t: '名前の変更', ic: '✏️', act: async () => {
                     const v = await dialog({ title: 'お気に入りの名前の変更', input: f.name, ok: '変更' });
                     if (v && v.trim()) {
                         f.name = v.trim();
+                        S.tabs.forEach(t => {
+                            if (t.fav == f.id)
+                                t.name = f.name; /* このお気に入りから開いたタブの名前も変えます */
+                        });
                         save();
                         renderDrawer();
+                        renderTabs();
                     }
                 } },
                 { t: 'お気に入りから削除', ic: '🗑️', act: () => { S.favs = S.favs.filter(v => v !== f); save(); renderDrawer(); renderPath(); toast('お気に入りから外しました'); } },
@@ -1669,7 +1750,7 @@
             if (!it.dataset.st)
                 return;
             const st = stOf(it.dataset.st);
-            const list = [{ t: '新しいタブで開く', ic: '⧉', act: () => { closeDrawer(); addTab(st.id, []); } }];
+            const list = [{ t: '今のタブで開く', ic: '↩', act: () => openSrc(stSrc(st), true) }];
             if (st.kind == 'pc')
                 list.push({ t: '別のフォルダを選ぶ', ic: '📂', act: pickPc });
             if (st.kind == 'server')
@@ -1721,7 +1802,7 @@
             pressable($('tabs'), '.tab, #tabAdd', {
                 tap: (it, e) => {
                     if (it.id == 'tabAdd')
-                        addTab(tab().st, tab().p);
+                        addTab(tab());
                     else if (e.target.closest('[data-x]'))
                         closeTab(+it.dataset.i);
                     else
@@ -1732,6 +1813,7 @@
                         tabMenu(it, x, y);
                 },
             });
+            $('crumbs').addEventListener('scroll', fadeCrumbs, { passive: true });
             pressable($('crumbs'), '.cr', {
                 tap: it => {
                     const t = tab(), d = +it.dataset.d;
@@ -1830,10 +1912,8 @@
             sortable(secs, { h: '.fav', it: '.fav' }, {
                 tap: it => {
                     const f = S.favs.find(v => v.id == it.dataset.id);
-                    if (f) {
-                        closeDrawer();
-                        go(f.st, f.p);
-                    }
+                    if (f)
+                        openSrc(favSrc(f)); /* ドロワーは閉じずに、新しいタブで開きます */
                 },
                 menu: favMenu,
                 drop: () => {
@@ -1849,8 +1929,7 @@
                         toast('サーバーの追加は、' + APPONLY);
                         return;
                     }
-                    closeDrawer();
-                    go(it.dataset.st, []);
+                    openSrc(stSrc(stOf(it.dataset.st)));
                 },
                 long: storageMenu,
             });
