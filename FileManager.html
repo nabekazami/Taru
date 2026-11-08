@@ -438,6 +438,104 @@
             font-weight: 600;
         }
 
+        /* ===== ホーム(タブを全部閉じたときだけ表示) ===== */
+        .home {
+            padding: 6px 14px 24px;
+        }
+
+        .home h4 {
+            margin: 16px 2px 8px;
+            color: var(--tx2);
+            font-size: 13px;
+            letter-spacing: .05em;
+        }
+
+        .hcards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(195px, 44vw), 1fr));
+            gap: 8px;
+        }
+
+        .hcard {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--panel);
+            text-align: left;
+        }
+
+        .hcard:active,
+        .hfav:active {
+            background: var(--panel2);
+        }
+
+        .hcard .ic {
+            flex: none;
+            font-size: 26px;
+        }
+
+        .hcard .tx {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .hcard .nm {
+            overflow: hidden;
+            font-weight: 600;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .hcard .sub {
+            overflow: hidden;
+            color: var(--tx2);
+            font-size: 11.5px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .hfavs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .hfav {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            max-width: 100%;
+            padding: 9px 14px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: var(--panel);
+        }
+
+        .hfav .fs {
+            color: var(--star);
+        }
+
+        .hfav .ac {
+            color: var(--tx2);
+            font-size: 12px;
+        }
+
+        .hfav .nm {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .hnote {
+            padding: 4px 2px;
+            color: var(--tx2);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
         /* ===== 下部操作バー(選択中だけ表示) ===== */
         #opbar {
             display: flex;
@@ -832,7 +930,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-08b';
+        const APP_VER = '2026-11-08c';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -949,11 +1047,10 @@
         catch {
             S = defaults();
         }
+        /* タブは0個でもよい(そのときはホームを表示します) */
         S.tabs = (Array.isArray(S.tabs) ? S.tabs : []).filter(t => t && stOf(t.st) && Array.isArray(t.p));
-        if (!S.tabs.length)
-            S.tabs = defaults().tabs;
         S.favs = (Array.isArray(S.favs) ? S.favs : []).filter(f => f && stOf(f.st) && Array.isArray(f.p));
-        S.cur = Math.min(Math.max(0, S.cur | 0), S.tabs.length - 1);
+        S.cur = S.tabs.length ? Math.min(Math.max(0, S.cur | 0), S.tabs.length - 1) : 0;
         /* 以前の既定の名前「Googleドライブ (sha…)」は「Googleドライブ」に直します(名前を変えていた場合はそのまま) */
         S.favs.forEach(f => {
             if (/^Googleドライブ \(.{3}…\)$/.test(f.name))
@@ -966,6 +1063,7 @@
             catch { }
         }
         const tab = () => S.tabs[S.cur];
+        const isHome = () => !S.tabs.length;
         const samePath = (a, b) => a.length == b.length && a.every((x, i) => x === b[i]);
         const findFav = (st, p) => S.favs.find(f => f.st == st && samePath(f.p, p));
         /* タブの名前: 開いたお気に入りの名前(またはストレージ名)で固定。Googleドライブは「Googleドライブ」で固定
@@ -1329,7 +1427,7 @@
                 const st = stOf(t.st);
                 const name = tabName(t);
                 const badge = st.kind == 'gdrive' ? `<span class="bd">${esc(st.account[0].toUpperCase())}</span>` : '';
-                const close = i == S.cur && S.tabs.length > 1 ? '<span class="tx" data-x="1" aria-label="タブを閉じる">✕</span>' : '';
+                const close = i == S.cur ? '<span class="tx" data-x="1" aria-label="タブを閉じる">✕</span>' : '';
                 return `<div class="tab${i == S.cur ? ' on' : ''}" data-i="${i}"><span class="ti">${st.icon}${badge}</span><span class="tl">${esc(name)}</span>${close}</div>`;
             }).join('') + '<button class="ib sm" id="tabAdd" aria-label="新しいタブ">＋</button>';
             const on = el.querySelector('.tab.on');
@@ -1354,7 +1452,7 @@
         /* ドロワーから開く: 同じお気に入り(ストレージ)のタブがあればそこへ切り替え、なければ新しいタブで開きます。
            here=true のときは今のタブで開きます(タブの名前も変わります) */
         function openSrc(src, here) {
-            if (here) {
+            if (here && !isHome()) {
                 const t = tab();
                 t.fav = src.fav;
                 t.from = src.from;
@@ -1371,13 +1469,9 @@
         const favSrc = f => ({ st: f.st, p: f.p, fav: f.id, from: undefined, name: f.name });
         const stSrc = st => ({ st: st.id, p: [], fav: undefined, from: 'st:' + st.id, name: st.name });
         function closeTab(i) {
-            if (S.tabs.length < 2) {
-                toast('最後のタブは閉じられません');
-                return;
-            }
             S.tabs.splice(i, 1);
             if (i < S.cur || S.cur >= S.tabs.length)
-                S.cur--;
+                S.cur = Math.max(0, S.cur - 1); /* 最後のタブを閉じるとホームになります */
             leaveFolder();
             save();
             renderAll();
@@ -1386,15 +1480,23 @@
             const i = +it.dataset.i, t = S.tabs[i];
             popMenu(x, y, [
                 { t: 'このタブを複製', ic: '⧉', act: () => addTab(t, i + 1) },
-                { t: 'このタブを閉じる', ic: '✕', dis: S.tabs.length < 2, act: () => closeTab(i) },
+                { t: 'このタブを閉じる', ic: '✕', act: () => closeTab(i) },
                 { t: 'ほかのタブを閉じる', dis: S.tabs.length < 2, act: () => { S.tabs = [t]; S.cur = 0; leaveFolder(); save(); renderAll(); } },
+                { t: 'すべてのタブを閉じる', act: () => { S.tabs = []; S.cur = 0; leaveFolder(); save(); renderAll(); } },
             ]);
         }
 
         /* ===== パス表示とお気に入り登録 ===== */
         function renderPath() {
-            const t = tab(), st = stOf(t.st), fav = findFav(t.st, t.p);
             const b = $('bStar');
+            b.hidden = isHome();
+            $('bSearch').hidden = isHome();
+            if (isHome()) {
+                $('crumbs').innerHTML = '<span class="cr">🏠 ホーム</span>';
+                fadeCrumbs();
+                return;
+            }
+            const t = tab(), st = stOf(t.st), fav = findFav(t.st, t.p);
             b.textContent = fav ? '★' : '☆';
             b.classList.toggle('on', !!fav);
             const parts = [`<button class="cr" data-d="0">${st.icon} ${esc(rootLabel(st))}</button>`];
@@ -1425,6 +1527,8 @@
             S.favs.push({ id: uid(), name: p.length ? p[p.length - 1] : stOf(stId).name, st: stId, p: [...p] });
         }
         async function showFullPath() {
+            if (isHome())
+                return;
             const t = tab(), path = realPath(stOf(t.st), t.p);
             if (await dialog({ title: '現在の場所', html: `<code>${esc(path)}</code>`, ok: 'コピー', cancel: '閉じる' })) {
                 try {
@@ -1459,6 +1563,13 @@
         const sel = new Set();
         let selMode = false;
         async function renderMain() {
+            if (isHome()) {
+                ++mainTok;
+                items = [];
+                shown = [];
+                drawHome();
+                return;
+            }
             const tok = ++mainTok, t = tab(), st = stOf(t.st), main = $('main');
             loading = true;
             const lt = setTimeout(() => {
@@ -1496,6 +1607,22 @@
             else
                 h = '読み込めませんでした。';
             $('main').innerHTML = `<div class="msg">${h}</div>`;
+        }
+        /* ===== ホーム(タブを全部閉じたとき) ===== */
+        function drawHome() {
+            const cards = STORAGES.map(st => {
+                const sub = st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : '';
+                return `<button class="hcard" data-hst="${st.id}"><span class="ic">${st.icon}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${sub}${capHtml(st)}</div></button>`;
+            }).join('');
+            const favs = S.favs.length ? '<div class="hfavs">' + S.favs.map(f => {
+                const st = stOf(f.st), ac = st.kind == 'gdrive' ? `<span class="ac">${esc(acName(st))}</span>` : ''; /* Googleドライブはアカウント名を添えて区別します */
+                return `<button class="hfav" data-hfav="${f.id}"><span class="fs">★</span><span class="nm">${esc(f.name)}</span>${ac}</button>`;
+            }).join('') + '</div>'
+                : '<div class="hnote">パス表示の ☆ をタップすると、今いる場所をお気に入りに登録できます。</div>';
+            $('main').innerHTML = `<div class="home"><h4>ストレージ</h4><div class="hcards">${cards}</div>`
+                + `<h4>お気に入り</h4>${favs}`
+                + `<h4>ゴミ箱</h4><div class="hcards"><button class="hcard" data-htrash="1"><span class="ic">🗑️</span><div class="tx"><div class="nm">ゴミ箱</div><div class="sub">0件・0 B</div></div></button></div></div>`;
+            $('main').scrollTop = 0;
         }
         function visible() {
             let a = items.filter(x => S.hidden || !x.name.startsWith('.'));
@@ -1633,6 +1760,10 @@
         /* ===== ︙メニュー ===== */
         function moreMenu() {
             const r = $('bMore').getBoundingClientRect(), x = r.right, y = r.bottom;
+            if (isHome()) {
+                popMenu(x, y, [{ t: '設定', ic: '⚙️', act: openSettings }]);
+                return;
+            }
             popMenu(x, y, [
                 { t: '新しいフォルダ', ic: '📁', act: () => toast(SOON) },
                 '-',
@@ -1701,7 +1832,7 @@
             return `<div class="sec" data-k="${key}"><button class="sech"><span class="ar">${f ? '▸' : '▾'}</span>${title}</button><div class="secb"${f ? ' hidden' : ''}>${body}</div></div>`;
         }
         function renderDrawer() {
-            const t = tab();
+            const t = tab() || { st: null, p: [] };
             const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${st.icon}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : ''}${capHtml(st)}</div></div>`).join('')
                 + '<div class="di add"><span class="ic">＋</span><div class="tx">サーバーを追加</div></div>';
             const favBody = S.favs.length ? S.favs.map(f => {
@@ -1767,7 +1898,7 @@
             try {
                 pcRoot = await window.showDirectoryPicker({ id: 'taruFilerPc', mode: 'readwrite' });
                 await idb.set('pcRoot', pcRoot).catch(() => 0);
-                if (tab().st == 'pc')
+                if (tab() && tab().st == 'pc')
                     tab().p = [];
                 save();
                 renderAll();
@@ -1802,7 +1933,7 @@
             pressable($('tabs'), '.tab, #tabAdd', {
                 tap: (it, e) => {
                     if (it.id == 'tabAdd')
-                        addTab(tab());
+                        addTab(isHome() ? stSrc(stOf('int')) : tab()); /* ホームでは内部ストレージの一番上を開きます */
                     else if (e.target.closest('[data-x]'))
                         closeTab(+it.dataset.i);
                     else
@@ -1817,7 +1948,7 @@
             pressable($('crumbs'), '.cr', {
                 tap: it => {
                     const t = tab(), d = +it.dataset.d;
-                    if (d < t.p.length)
+                    if (t && d < t.p.length)
                         go(t.st, t.p.slice(0, d));
                 },
                 long: () => showFullPath(),
@@ -1864,6 +1995,19 @@
                 },
             });
             main.addEventListener('click', e => {
+                const h = e.target.closest('[data-hst], [data-hfav], [data-htrash]');
+                if (h) {
+                    if (h.dataset.hst)
+                        openSrc(stSrc(stOf(h.dataset.hst)));
+                    else if (h.dataset.hfav) {
+                        const f = S.favs.find(v => v.id == h.dataset.hfav);
+                        if (f)
+                            openSrc(favSrc(f));
+                    }
+                    else
+                        toast('ゴミ箱は、次の段階(HTML②)で使えるようになります');
+                    return;
+                }
                 const b = e.target.closest('[data-act]');
                 if (!b)
                     return;
@@ -1876,7 +2020,7 @@
                     go(tab().st, []);
             });
             main.addEventListener('scroll', () => {
-                if (!loading)
+                if (!loading && tab())
                     tab().sc = main.scrollTop;
             }, { passive: true });
 
@@ -1951,7 +2095,7 @@
                     else if (selMode)
                         exitSelect();
                 }
-                else if (e.key == 'Backspace' && !typing && !closeModal && tab().p.length)
+                else if (e.key == 'Backspace' && !typing && !closeModal && tab() && tab().p.length)
                     go(tab().st, tab().p.slice(0, -1));
             });
             window.addEventListener('resize', drTop);
