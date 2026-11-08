@@ -158,24 +158,40 @@
         }
 
         .tab .ti {
-            position: relative;
             flex: none;
         }
 
-        .tab .bd {
+        /* Googleドライブのアイコン: 右下にアカウントの頭文字の印(色はアカウントごと)。大きさはアイコンに合わせて変わります */
+        .gi {
+            position: relative;
+            display: inline-block;
+            margin-right: .25em; /* 印が後ろの文字に重ならないように */
+            line-height: 1;
+        }
+
+        .gi .gb {
             position: absolute;
-            right: -5px;
-            bottom: -4px;
-            min-width: 13px;
-            height: 13px;
-            padding: 0 2px;
-            border-radius: 7px;
-            background: var(--acc);
+            right: -.3em;
+            bottom: -.25em;
+            min-width: .72em;
+            height: .72em;
+            padding: 0 .1em;
+            border-radius: .36em;
             color: #fff;
-            font-size: 9px;
-            font-weight: 700;
-            line-height: 13px;
+            font-family: system-ui, sans-serif;
+            font-size: 1em;
+            font-style: normal;
+            line-height: .72em;
             text-align: center;
+        }
+
+        .gi .gb b {
+            display: inline-block;
+            font-size: .55em;
+            font-weight: 700;
+            line-height: inherit;
+            vertical-align: top;
+            transform: translateY(.03em);
         }
 
         .tab .tl {
@@ -227,11 +243,26 @@
             color: var(--star);
         }
 
-        /* ☆は右端に固定し、パスとの間に細い区切り線を入れます */
-        #bStar {
-            margin-left: 2px;
-            border-left: 1px solid var(--line);
-            border-radius: 0 10px 10px 0;
+        /* パス: 先頭(ストレージ名 + ›)は固定し、その後ろのフォルダ部分だけを横にスクロールします */
+        #crWrap {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        #crRoot {
+            flex: none;
+            display: flex;
+            align-items: center;
+            max-width: 40vw;
+            white-space: nowrap;
+        }
+
+        #crRoot .cr {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #crumbs {
@@ -262,7 +293,7 @@
             color: var(--tx2);
         }
 
-        .cr:last-child {
+        .cr.last {
             color: var(--tx);
             font-weight: 600;
         }
@@ -884,7 +915,10 @@
         <!-- ドロワーのボタン / お気に入り登録 / パス表示 -->
         <div id="pathbar">
             <button id="bMenu" class="ib" aria-label="ドロワー">☰</button>
-            <div id="crumbs"></div>
+            <div id="crWrap">
+                <div id="crRoot"></div>
+                <div id="crumbs"></div>
+            </div>
             <button id="bStar" class="ib star" aria-label="お気に入り">☆</button>
         </div>
         <div id="searchRow" hidden>
@@ -930,7 +964,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-08c';
+        const APP_VER = '2026-11-09a';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1018,6 +1052,12 @@
         const stOf = id => STORAGES.find(s => s.id === id);
         /* Googleドライブのアカウントは「@」より前だけを表示します */
         const acName = st => st.account.split('@')[0];
+        /* アカウントごとの印の色(Googleドライブの並び順に割り当てます) */
+        const AC_COLORS = ['#3b8eea', '#22a06b', '#e08a00', '#c34fb5', '#e5534b', '#0f9fb0'];
+        const acColor = st => AC_COLORS[STORAGES.filter(x => x.kind == 'gdrive').indexOf(st) % AC_COLORS.length];
+        /* ストレージのアイコン(Googleドライブは頭文字の印付き) */
+        const ico = st => st.kind != 'gdrive' ? st.icon
+            : `<span class="gi">${st.icon}<i class="gb" style="background:${acColor(st)}"><b>${esc(st.account[0].toUpperCase())}</b></i></span>`;
         /* パス表示の先頭・ドロワーの場所の表記(Googleドライブはアカウント名、ほかはストレージ名) */
         const rootLabel = st => st.kind == 'gdrive' ? acName(st) : st.name;
 
@@ -1426,9 +1466,8 @@
             el.innerHTML = S.tabs.map((t, i) => {
                 const st = stOf(t.st);
                 const name = tabName(t);
-                const badge = st.kind == 'gdrive' ? `<span class="bd">${esc(st.account[0].toUpperCase())}</span>` : '';
                 const close = i == S.cur ? '<span class="tx" data-x="1" aria-label="タブを閉じる">✕</span>' : '';
-                return `<div class="tab${i == S.cur ? ' on' : ''}" data-i="${i}"><span class="ti">${st.icon}${badge}</span><span class="tl">${esc(name)}</span>${close}</div>`;
+                return `<div class="tab${i == S.cur ? ' on' : ''}" data-i="${i}"><span class="ti">${ico(st)}</span><span class="tl">${esc(name)}</span>${close}</div>`;
             }).join('') + '<button class="ib sm" id="tabAdd" aria-label="新しいタブ">＋</button>';
             const on = el.querySelector('.tab.on');
             if (on)
@@ -1492,17 +1531,18 @@
             b.hidden = isHome();
             $('bSearch').hidden = isHome();
             if (isHome()) {
-                $('crumbs').innerHTML = '<span class="cr">🏠 ホーム</span>';
+                $('crRoot').innerHTML = '<span class="cr last">🏠 ホーム</span>';
+                $('crumbs').innerHTML = '';
                 fadeCrumbs();
                 return;
             }
             const t = tab(), st = stOf(t.st), fav = findFav(t.st, t.p);
             b.textContent = fav ? '★' : '☆';
             b.classList.toggle('on', !!fav);
-            const parts = [`<button class="cr" data-d="0">${st.icon} ${esc(rootLabel(st))}</button>`];
-            t.p.forEach((s, i) => parts.push(`<span class="cs">›</span><button class="cr" data-d="${i + 1}">${esc(s)}</button>`));
+            const n = t.p.length;
+            $('crRoot').innerHTML = `<button class="cr${n ? '' : ' last'}" data-d="0">${ico(st)} ${esc(rootLabel(st))}</button>` + (n ? '<span class="cs">›</span>' : '');
             const c = $('crumbs');
-            c.innerHTML = parts.join('');
+            c.innerHTML = t.p.map((s, i) => (i ? '<span class="cs">›</span>' : '') + `<button class="cr${i == n - 1 ? ' last' : ''}" data-d="${i + 1}">${esc(s)}</button>`).join('');
             c.scrollLeft = c.scrollWidth;
             fadeCrumbs();
         }
@@ -1603,7 +1643,7 @@
             else if (code == 'pcperm')
                 h = `前回のフォルダ「${esc(pcRoot.name)}」に接続します。<br><button class="btn" data-act="perm">接続する</button><br><button class="btn" data-act="pick" style="background:var(--panel2);color:var(--tx)">別のフォルダを選ぶ</button>`;
             else if (code == 'notfound')
-                h = `このフォルダは見つかりません。<br><button class="btn" data-act="root">${st.icon} ${esc(rootLabel(st))}の一番上へ</button>`;
+                h = `このフォルダは見つかりません。<br><button class="btn" data-act="root">${ico(st)} ${esc(rootLabel(st))}の一番上へ</button>`;
             else
                 h = '読み込めませんでした。';
             $('main').innerHTML = `<div class="msg">${h}</div>`;
@@ -1612,7 +1652,7 @@
         function drawHome() {
             const cards = STORAGES.map(st => {
                 const sub = st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : '';
-                return `<button class="hcard" data-hst="${st.id}"><span class="ic">${st.icon}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${sub}${capHtml(st)}</div></button>`;
+                return `<button class="hcard" data-hst="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${sub}${capHtml(st)}</div></button>`;
             }).join('');
             const favs = S.favs.length ? '<div class="hfavs">' + S.favs.map(f => {
                 const st = stOf(f.st), ac = st.kind == 'gdrive' ? `<span class="ac">${esc(acName(st))}</span>` : ''; /* Googleドライブはアカウント名を添えて区別します */
@@ -1833,12 +1873,12 @@
         }
         function renderDrawer() {
             const t = tab() || { st: null, p: [] };
-            const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${st.icon}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : ''}${capHtml(st)}</div></div>`).join('')
+            const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : ''}${capHtml(st)}</div></div>`).join('')
                 + '<div class="di add"><span class="ic">＋</span><div class="tx">サーバーを追加</div></div>';
             const favBody = S.favs.length ? S.favs.map(f => {
                 const st = stOf(f.st);
                 const where = (st.kind == 'gdrive' ? [acName(st), ...f.p] : f.p).join('/') || st.name;
-                return `<div class="di fav${t.st == f.st && samePath(t.p, f.p) ? ' cur' : ''}" data-id="${f.id}"><span class="ic fs">★</span><div class="tx"><div class="nm">${esc(f.name)}</div><div class="sub" data-ic="${st.icon}" data-full="${esc(where)}">${st.icon} ${esc(where)}</div></div></div>`;
+                return `<div class="di fav${t.st == f.st && samePath(t.p, f.p) ? ' cur' : ''}" data-id="${f.id}"><span class="ic fs">★</span><div class="tx"><div class="nm">${esc(f.name)}</div><div class="sub" data-full="${esc(where)}">${ico(st)} <span class="wh">${esc(where)}</span></div></div></div>`;
             }).join('') : '<div class="dnote">パス表示の ☆ をタップすると、今いる場所を登録できます。</div>';
             const secs = { storage: secHtml('storage', 'ストレージ', stBody), fav: secHtml('fav', 'お気に入り', favBody) };
             $('secs').innerHTML = S.secOrder.map(k => secs[k]).join('');
@@ -1852,7 +1892,7 @@
                     continue;
                 const segs = el.dataset.full.split('/');
                 for (let k = 1; el.scrollWidth > el.clientWidth && k < segs.length; k++)
-                    el.textContent = el.dataset.ic + ' …/' + segs.slice(k).join('/');
+                    el.querySelector('.wh').textContent = '…/' + segs.slice(k).join('/');
             }
         }
         function favMenu(it, x, y) {
@@ -1945,7 +1985,7 @@
                 },
             });
             $('crumbs').addEventListener('scroll', fadeCrumbs, { passive: true });
-            pressable($('crumbs'), '.cr', {
+            pressable($('crWrap'), '.cr', {
                 tap: it => {
                     const t = tab(), d = +it.dataset.d;
                     if (t && d < t.p.length)
