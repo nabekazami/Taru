@@ -50,6 +50,21 @@
             display: none !important;
         }
 
+        /* SVGアイコン: 大きさは周りの文字の大きさに合わせます */
+        .sv {
+            display: inline-block;
+            width: 1.15em;
+            height: 1.15em;
+            line-height: 0;
+            vertical-align: -.22em;
+        }
+
+        .sv svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
         html,
         body {
             margin: 0;
@@ -125,9 +140,9 @@
             flex: 1;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
             height: 48px;
-            padding: 0 2px;
+            padding: 0 2px 0 4px;
             overflow-x: auto;
             scrollbar-width: none;
         }
@@ -140,12 +155,12 @@
             flex: none;
             display: flex;
             align-items: center;
-            gap: 4px;
-            height: 36px;
-            max-width: 170px;
-            padding: 0 10px;
+            gap: 3px;
+            height: 30px;
+            padding: 0 7px;
             border: 1px solid transparent;
-            border-radius: 9px;
+            border-radius: 8px;
+            font-size: 13px;
             background: var(--panel2);
             color: var(--tx2);
             white-space: nowrap;
@@ -153,7 +168,7 @@
         }
 
         .tab.on {
-            padding-right: 4px;
+            padding-right: 2px;
             border-color: var(--acc);
             background: var(--accSoft);
             color: var(--tx);
@@ -196,7 +211,9 @@
             transform: translateY(.03em);
         }
 
+        /* タブの名前は8文字分くらいまで(超えたら「…」)。「Googleドライブ」は切れずに入ります */
         .tab .tl {
+            max-width: 8em;
             overflow: hidden;
             text-overflow: ellipsis;
         }
@@ -205,11 +222,26 @@
             flex: none;
             display: grid;
             place-items: center;
-            width: 26px;
-            height: 26px;
+            width: 22px;
+            height: 22px;
             border-radius: 6px;
             color: var(--tx2);
-            font-size: 13px;
+            font-size: 11px;
+        }
+
+        /* ホームのときにタブの欄に出す、アプリのアイコンと名前 */
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 8px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .brand .appic {
+            width: 26px;
+            height: 26px;
         }
 
         /* ===== 選択中の上部 ===== */
@@ -261,10 +293,32 @@
             white-space: nowrap;
         }
 
+        /* 先頭は2行(上にアイコン、下にストレージ名)にして幅を詰めます */
         #crRoot .cr {
             min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            padding: 3px 5px;
+            line-height: 1.15;
+        }
+
+        #crRoot .rti {
+            font-size: 15px;
+        }
+
+        #crRoot .rtn {
+            max-width: 100%;
             overflow: hidden;
+            font-size: 10.5px;
             text-overflow: ellipsis;
+        }
+
+        #crRoot .cr.one {
+            flex-direction: row;
+            gap: 5px;
+            font-size: 13px;
         }
 
         #crumbs {
@@ -290,9 +344,10 @@
 
         .cr {
             flex: none;
-            padding: 7px 6px;
+            padding: 7px 4px;
             border-radius: 7px;
             color: var(--tx2);
+            font-size: 13px;
         }
 
         .cr.last {
@@ -473,27 +528,39 @@
 
         /* ===== ホーム(タブを全部閉じたときだけ表示) ===== */
         .home {
-            padding: 6px 14px 24px;
+            padding: 2px 12px 24px;
         }
 
-        .home h4 {
-            margin: 16px 2px 8px;
+        /* 見出し: タップで格納・展開(ドロワーとは別に覚えます) */
+        .hsech {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            margin: 6px 0 2px;
+            padding: 8px 2px 6px;
             color: var(--tx2);
-            font-size: 13px;
+            font-size: 12px;
+            font-weight: 700;
             letter-spacing: .05em;
+            text-align: left;
+        }
+
+        .hsech .ar {
+            width: 12px;
         }
 
         .hcards {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(min(195px, 44vw), 1fr));
-            gap: 8px;
+            gap: 6px;
         }
 
         .hcard {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px;
+            gap: 8px;
+            padding: 7px 10px;
             border: 1px solid var(--line);
             border-radius: 12px;
             background: var(--panel);
@@ -507,7 +574,7 @@
 
         .hcard .ic {
             flex: none;
-            font-size: 26px;
+            font-size: 21px;
         }
 
         .hcard .tx {
@@ -517,6 +584,7 @@
 
         .hcard .nm {
             overflow: hidden;
+            font-size: 13px;
             font-weight: 600;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -525,23 +593,31 @@
         .hcard .sub {
             overflow: hidden;
             color: var(--tx2);
-            font-size: 11.5px;
+            font-size: 10.5px;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .home .bar {
+            height: 3px;
+            margin-top: 4px;
         }
 
         .hfavs {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
         }
 
+        /* お気に入り: 高さを固定して、2行(Googleドライブ)でも同じ高さにします */
         .hfav {
             display: flex;
             align-items: center;
             gap: 6px;
             max-width: 100%;
-            padding: 9px 14px;
+            height: 34px;
+            padding: 0 12px;
+            font-size: 13px;
             border: 1px solid var(--line);
             border-radius: 20px;
             background: var(--panel);
@@ -551,9 +627,24 @@
             color: var(--star);
         }
 
+        .hfav .two {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            line-height: 1.12;
+            text-align: left;
+        }
+
+        .hfav .two .nm {
+            font-size: 11.5px;
+        }
+
         .hfav .ac {
+            overflow: hidden;
             color: var(--tx2);
-            font-size: 12px;
+            font-size: 9.5px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .hfav .nm {
@@ -641,7 +732,7 @@
             align-items: center;
             gap: 6px;
             width: 100%;
-            padding: 14px 14px 8px;
+            padding: 10px 14px 5px;
             color: var(--tx2);
             font-size: 13px;
             font-weight: 700;
@@ -664,8 +755,8 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            min-height: 48px;
-            padding: 9px 16px;
+            min-height: 40px; /* 1行の項目は約40px、2行の項目は約44px(押し間違えない程度に詰めています) */
+            padding: 4px 16px;
             border-radius: 10px;
             cursor: pointer;
         }
@@ -688,10 +779,13 @@
             white-space: nowrap;
         }
 
+        /* 2行目: 上下に少しすき間を足して、Googleドライブの頭文字の印が切れないようにします */
         .di .sub {
             overflow: hidden;
+            padding: 1px 0 2px;
             color: var(--tx2);
             font-size: 11.5px;
+            line-height: 1.25;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
@@ -727,7 +821,7 @@
 
         .dsep {
             height: 1px;
-            margin: 6px 0;
+            margin: 4px 0;
             background: var(--line);
         }
 
@@ -798,6 +892,7 @@
         .pm .pc {
             width: 20px;
             color: var(--acc);
+            font-size: 16px;
             text-align: center;
         }
 
@@ -926,37 +1021,36 @@
         <!-- 上部: タブ / 検索 / メニュー -->
         <header id="top">
             <div id="tabs"></div>
-            <button id="bSearch" class="ib" aria-label="絞り込み">🔍</button>
-            <button id="bMore" class="ib" aria-label="メニュー">︙</button>
+            <button id="bMore" class="ib" aria-label="メニュー"><i data-sv="more"></i></button>
         </header>
         <!-- 選択中の上部 -->
         <header id="selTop" hidden>
-            <button id="selX" class="ib" aria-label="選択をやめる">✕</button>
+            <button id="selX" class="ib" aria-label="選択をやめる"><i data-sv="close"></i></button>
             <span id="selCount"></span>
             <button id="selAll" class="tb">全選択</button>
         </header>
         <!-- ドロワーのボタン / お気に入り登録 / パス表示 -->
         <div id="pathbar">
-            <button id="bMenu" class="ib" aria-label="ドロワー">☰</button>
+            <button id="bMenu" class="ib" aria-label="ドロワー"><i data-sv="menu"></i></button>
             <div id="crWrap">
                 <div id="crRoot"></div>
                 <div id="crumbs"></div>
             </div>
-            <button id="bStar" class="ib star" aria-label="お気に入り">☆</button>
+            <button id="bStar" class="ib star" aria-label="お気に入り"><i data-sv="star"></i></button>
         </div>
         <div id="searchRow" hidden>
             <input id="q" placeholder="このフォルダ内を名前で絞り込み" autocomplete="off">
-            <button id="qX" class="ib sm" aria-label="絞り込みを閉じる">✕</button>
+            <button id="qX" class="ib sm" aria-label="絞り込みを閉じる"><i data-sv="close"></i></button>
         </div>
         <!-- ファイル・フォルダの一覧 -->
         <main id="main"></main>
         <!-- 下部操作バー -->
         <footer id="opbar" hidden>
-            <button data-op="copy"><span class="oi">📋</span>コピー</button>
-            <button data-op="move"><span class="oi">✂️</span>移動</button>
-            <button data-op="del"><span class="oi">🗑️</span>削除</button>
-            <button data-op="ren" id="opRen"><span class="oi">✏️</span>名前変更</button>
-            <button data-op="more"><span class="oi">︙</span>その他</button>
+            <button data-op="copy"><span class="oi"><i data-sv="copy"></i></span>コピー</button>
+            <button data-op="move"><span class="oi"><i data-sv="move"></i></span>移動</button>
+            <button data-op="del"><span class="oi"><i data-sv="del"></i></span>削除</button>
+            <button data-op="ren" id="opRen"><span class="oi"><i data-sv="ren"></i></span>名前変更</button>
+            <button data-op="more"><span class="oi"><i data-sv="moreH"></i></span>その他</button>
         </footer>
     </div>
 
@@ -965,10 +1059,10 @@
         <div class="dscroll">
             <div id="secs"></div>
             <div class="dsep"></div>
-            <div class="di" id="dTrash"><span class="ic">🗑️</span>
+            <div class="di" id="dTrash"><span class="ic"><i data-sv="del"></i></span>
                 <div class="tx">ゴミ箱</div>
             </div>
-            <div class="di" id="dSet"><span class="ic">⚙️</span>
+            <div class="di" id="dSet"><span class="ic"><i data-sv="gear"></i></span>
                 <div class="tx">設定</div>
             </div>
         </div>
@@ -987,7 +1081,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-09b';
+        const APP_VER = '2026-11-10b';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1002,6 +1096,135 @@
         };
         const SOON = 'この操作は次の段階(HTML②)で使えるようになります';
         const APPONLY = 'Androidアプリ版で使えるようになります';
+
+        /* ===== アイコン(SVG)。見本: FileManager_icons.html。ストレージとファイルは A(色付き)、ボタンは B(線) ===== */
+        const L = (inner, sw = 1.7) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+        const F = inner => `<svg viewBox="0 0 24 24">${inner}</svg>`;
+        const DOC_P = 'M6.5 2.5h7l5 5v12a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2z';
+        const docB = extra => L(`<path d="${DOC_P}"/><path d="M13.5 2.5v5h5"/>${extra}`);
+        const docA = (extra, band) => F(`<path d="M6 2h8l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#eef2f7" stroke="#aab6c6" stroke-width=".8"/><path d="M14 2v5h5z" fill="#c3cddb"/>${band ? `<path d="M4 15h15v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" fill="${band}"/>` : ''}${extra}`);
+        const gear = (() => {
+            const pts = [];
+            for (let i = 0; i < 8; i++) {
+                const a0 = i * Math.PI / 4;
+                for (const [da, r] of [[-0.24, 7.8], [-0.14, 9.5], [0.14, 9.5], [0.24, 7.8]])
+                    pts.push([12 + r * Math.cos(a0 + da), 12 + r * Math.sin(a0 + da)]);
+            }
+            return 'M' + pts.map(p => p.map(v => v.toFixed(2)).join(' ')).join('L') + 'z';
+        })();
+        const STAR = 'M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-2.9-5.4 2.9 1.1-6-4.5-4.2 6.1-.8z';
+        const FOLDER_B = 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z';
+
+        /* ===== アイコン(A: 色付き / B: 線) ===== */
+        const STORAGE = [
+            ['内部ストレージ',
+                F('<rect x="6" y="1.8" width="12" height="20.4" rx="2.6" fill="#4b5b70"/><rect x="7.4" y="4.2" width="9.2" height="13.8" rx="1" fill="#7cc4ff"/><path d="M7.4 4.2h9.2v4L7.4 14z" fill="#a8d8ff" opacity=".6"/><rect x="10.3" y="19.4" width="3.4" height="1.2" rx=".6" fill="#c9d3df"/>'),
+                L('<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>')],
+            ['SDカード',
+                F('<path d="M8 2h8.5L20 5.5V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z" fill="#2f6fd6"/><rect x="8" y="3.6" width="1.6" height="4.4" rx=".5" fill="#f5c84c"/><rect x="10.8" y="3.6" width="1.6" height="4.4" rx=".5" fill="#f5c84c"/><rect x="13.6" y="3.6" width="1.6" height="4.4" rx=".5" fill="#f5c84c"/><rect x="7" y="12.5" width="10" height="6.5" rx="1" fill="#e9f1ff"/><text x="12" y="17.4" text-anchor="middle" font-size="4.4" font-weight="700" font-family="sans-serif" fill="#2f6fd6">SD</text>'),
+                L('<path d="M8.5 2.5h7l3.5 3.5v13.5a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V6.5z"/><path d="M9.5 5.5v3M12 5.5v3M14.5 5.5v3"/>')],
+            ['PCフォルダ',
+                F('<rect x="3.5" y="4" width="17" height="12" rx="1.6" fill="#4b5b70"/><rect x="5" y="5.5" width="14" height="9" rx=".6" fill="#7cc4ff"/><path d="M1.5 17.5h21l-1.4 2.6a1 1 0 0 1-.9.5H3.8a1 1 0 0 1-.9-.5z" fill="#9aa6b8"/>'),
+                L('<rect x="4.5" y="5" width="15" height="10.5" rx="1.5"/><path d="M2.5 19h19"/>')],
+            ['さくら(サーバー)',
+                F('<rect x="3" y="3" width="18" height="7.5" rx="1.8" fill="#5b6b80"/><rect x="3" y="13.5" width="18" height="7.5" rx="1.8" fill="#5b6b80"/><circle cx="7" cy="6.75" r="1.3" fill="#ff8fb1"/><circle cx="7" cy="17.25" r="1.3" fill="#6ee7a8"/><path d="M11 6.75h7M11 17.25h7" stroke="#aeb9c8" stroke-width="1.4" stroke-linecap="round"/>'),
+                L('<rect x="4" y="4" width="16" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="16" height="6.5" rx="1.5"/><path d="M7.5 7.25h.01M7.5 16.75h.01M11 7.25h6M11 16.75h6"/>')],
+            ['Googleドライブ',
+                F('<path d="M6.8 19h10.9a4.3 4.3 0 0 0 .5-8.6 6.3 6.3 0 0 0-12-1.3A5 5 0 0 0 6.8 19z" fill="#7fb8ff"/><path d="M6.8 19h10.9a4.3 4.3 0 0 0 2.7-1H4.2a5 5 0 0 0 2.6 1z" fill="#5f9ee8"/><path d="M8.6 9.6a4.6 4.6 0 0 1 6.2-1.4" stroke="#fff" stroke-width="1.3" stroke-linecap="round" fill="none" opacity=".75"/>'),
+                L('<path d="M7 18.5h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.3-1.4A4.5 4.5 0 0 0 7 18.5z"/>'), 'gd'],
+        ];
+        const FILES = [
+            ['フォルダ',
+                F('<path d="M2.5 6a2 2 0 0 1 2-2h4.6l2 2h8.4a2 2 0 0 1 2 2v1H2.5z" fill="#d69228"/><rect x="2.5" y="8.2" width="19" height="12" rx="2" fill="#f6be48"/><rect x="3.8" y="9.4" width="16.4" height="1.2" rx=".6" fill="#ffdf8c"/>'),
+                L(`<path d="${FOLDER_B}"/>`)],
+            ['画像',
+                F('<rect x="2.5" y="4" width="19" height="16" rx="2.6" fill="#3aa0e8"/><path d="M4.5 18l5-6.2 3.6 4.2 2.5-3 4 5z" fill="#fff" opacity=".92"/><circle cx="16" cy="8.6" r="1.9" fill="#ffe27a"/>'),
+                L('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="9.5" r="1.5"/><path d="M4 17l5-5 4 4 2.5-2.5L20 18"/>')],
+            ['動画',
+                F('<rect x="2.5" y="4" width="19" height="16" rx="2.6" fill="#e5534b"/><path d="M10 8.5v7l6-3.5z" fill="#fff"/><path d="M2.5 7h2M2.5 12h2M2.5 17h2M19.5 7h2M19.5 12h2M19.5 17h2" stroke="#b33a33" stroke-width="1.2"/>'),
+                L('<rect x="3" y="6" width="12.5" height="12" rx="2"/><path d="M15.5 10.5l5-3v9l-5-3z"/>')],
+            ['音楽',
+                F('<rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="#a86ee8"/><path d="M10 16.3V8.2l7-1.6v8" stroke="#fff" stroke-width="1.6" fill="none" stroke-linejoin="round"/><circle cx="8.4" cy="16.4" r="2" fill="#fff"/><circle cx="15.4" cy="14.7" r="2" fill="#fff"/>'),
+                L('<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>')],
+            ['PDF',
+                docA('<text x="11.5" y="20.2" text-anchor="middle" font-size="5.2" font-weight="800" font-family="sans-serif" fill="#fff">PDF</text><path d="M7 7h5M7 10h9M7 12.5h9" stroke="#b9c3d0" stroke-width="1.1" stroke-linecap="round"/>', '#e5534b'),
+                docB('<text x="11.5" y="17.5" text-anchor="middle" font-size="5" font-weight="800" font-family="sans-serif" fill="currentColor" stroke="none">PDF</text>')],
+            ['圧縮(zip)',
+                docA('<path d="M11.5 2v2h1.5v2h-1.5v2h1.5v2h-1.5v2" stroke="#8a6d3b" stroke-width="1.5" fill="none"/><rect x="10" y="12.5" width="4" height="4.5" rx="1" fill="#c58b4a"/><rect x="11.2" y="14.3" width="1.6" height="1.2" rx=".4" fill="#eef2f7"/>'),
+                docB('<path d="M11 4h2M11 7h2M11 10h2"/><rect x="10" y="12.5" width="4" height="4.5" rx="1"/>')],
+            ['アプリ(APK)',
+                F('<path d="M12 2.6l8.8 4.6v9.6L12 21.4l-8.8-4.6V7.2z" fill="#c58b4a"/><path d="M3.2 7.2L12 11.8l8.8-4.6L12 2.6z" fill="#e0aa6a"/><path d="M12 11.8v9.6l8.8-4.6V7.2z" fill="#a8733a"/><path d="M7.6 4.9l8.8 4.6" stroke="#f5dbb4" stroke-width="1.4"/>'),
+                L('<path d="M3.5 8l8.5-4.5L20.5 8v8.5L12 21l-8.5-4.5z"/><path d="M3.5 8L12 12.5 20.5 8M12 12.5V21"/>')],
+            ['文書',
+                docA('<path d="M7 9h10M7 12h10M7 15h10M7 18h6" stroke="#3b7ddd" stroke-width="1.4" stroke-linecap="round"/>'),
+                docB('<path d="M9 12h6M9 15h6M9 18h4"/>')],
+            ['表計算',
+                docA('<rect x="6.5" y="9.5" width="10" height="9.5" rx="1" fill="#22a06b"/><path d="M6.5 12.7h10M6.5 15.9h10M10 9.5v9.5M13.3 9.5v9.5" stroke="#eef2f7" stroke-width=".9"/>'),
+                docB('<rect x="8.5" y="11" width="7" height="7.5" rx=".5"/><path d="M8.5 14.75h7M12 11v7.5"/>')],
+            ['Web',
+                F('<circle cx="12" cy="12" r="9.5" fill="#2fa5c9"/><path d="M12 2.5c-3 3-3 16 0 19M12 2.5c3 3 3 16 0 19M2.5 12h19M4 7h16M4 17h16" stroke="#e6f7fd" stroke-width="1.1" fill="none" opacity=".9"/>'),
+                L('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-3.3 3.6-3.3 14.4 0 18M12 3c3.3 3.6 3.3 14.4 0 18"/>')],
+            ['テキスト',
+                docA('<path d="M7 9h10M7 12h10M7 15h10M7 18h6" stroke="#8a96a8" stroke-width="1.4" stroke-linecap="round"/>'),
+                docB('<path d="M9 12h6M9 15h6M9 18h6"/>')],
+            ['その他のファイル',
+                docA(''),
+                docB('')],
+        ];
+        const red = '#e5534b', gold = '#f5c518';
+        const UI = [
+            ['ドロワー(☰)', L('<path d="M4 6.5h16M4 12h16M4 17.5h16"/>')],
+            ['メニュー(︙)', L('<circle cx="12" cy="5.5" r=".9" fill="currentColor"/><circle cx="12" cy="12" r=".9" fill="currentColor"/><circle cx="12" cy="18.5" r=".9" fill="currentColor"/>', 2)],
+            ['閉じる(✕)', L('<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>')],
+            ['お気に入り(☆)', L(`<path d="${STAR}"/>`)],
+            ['お気に入り(★)', F(`<path d="${STAR}" fill="${gold}"/>`), L(`<path d="${STAR}" fill="currentColor"/>`)],
+            ['フォルダ内検索', L('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/>')],
+            ['ホーム', L('<path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h4.5v-5.5h3V20H18V9.5"/>')],
+            ['コピー', L('<rect x="8.5" y="8.5" width="11.5" height="12" rx="2"/><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v9.5a2 2 0 0 0 2 2h3"/>')],
+            ['移動', L(`<path d="${FOLDER_B}"/><path d="M8.5 13h7M13 10.5l2.5 2.5-2.5 2.5"/>`)],
+            ['削除・ゴミ箱',
+                F(`<g fill="none" stroke="${red}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M9 6.5V4.5h6v2"/><path d="M6 6.5l1 13a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4l1-13M10 10.5v6.5M14 10.5v6.5"/></g>`),
+                L('<path d="M4 6.5h16M9 6.5V4.5h6v2"/><path d="M6 6.5l1 13a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4l1-13M10 10.5v6.5M14 10.5v6.5"/>')],
+            ['名前変更', L('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>')],
+            ['その他(︙)', L('<circle cx="5.5" cy="12" r=".9" fill="currentColor"/><circle cx="12" cy="12" r=".9" fill="currentColor"/><circle cx="18.5" cy="12" r=".9" fill="currentColor"/>', 2)],
+            ['共有', L('<circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.7 10.7l6.6-3.9M8.7 13.3l6.6 3.9"/>')],
+            ['ほかのアプリで開く', L('<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>')],
+            ['プロパティ', L('<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".6" fill="currentColor"/>')],
+            ['zipに圧縮', L('<rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5v10a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-10M10 12h4"/>')],
+            ['新しいフォルダ', L(`<path d="${FOLDER_B}"/><path d="M12 10.5v6M9 13.5h6"/>`)],
+            ['一覧表示', L('<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r=".8" fill="currentColor"/><circle cx="4.8" cy="12" r=".8" fill="currentColor"/><circle cx="4.8" cy="17.5" r=".8" fill="currentColor"/>')],
+            ['アイコン表示', L('<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>')],
+            ['並べ替え', L('<path d="M7.5 4v16M4.5 17l3 3 3-3M16.5 20V4M13.5 7l3-3 3 3"/>')],
+            ['隠しファイルを表示', L('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>')],
+            ['全選択', L('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5.5-6"/>')],
+            ['更新', L('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5V9H15"/>')],
+            ['設定', L(`<path d="${gear}"/><circle cx="12" cy="12" r="3"/>`, 1.5)],
+            ['タブを複製', L('<rect x="3.5" y="7.5" width="13" height="13" rx="2"/><path d="M7.5 3.5h11a2 2 0 0 1 2 2v11"/>')],
+            ['サーバーを追加', L('<path d="M12 5v14M5 12h14"/>')],
+            ['格納・展開', L('<path d="M9 6l6 6-6 6"/>'), L('<path d="M6 9l6 6 6-6"/>')],
+        ];
+
+        const _A = Object.fromEntries([...STORAGE, ...FILES].map(x => [x[0], x[1]]));
+        const _B = Object.fromEntries(UI.map(x => [x[0], x[2] || x[1]]));
+        const SV = {
+            /* ストレージ・ファイル(A) */
+            int: _A['内部ストレージ'], sd: _A['SDカード'], pc: _A['PCフォルダ'], server: _A['さくら(サーバー)'], cloud: _A['Googleドライブ'],
+            folder: _A['フォルダ'], image: _A['画像'], video: _A['動画'], music: _A['音楽'], pdf: _A['PDF'], zip: _A['圧縮(zip)'],
+            apk: _A['アプリ(APK)'], doc: _A['文書'], sheet: _A['表計算'], web: _A['Web'], text: _A['テキスト'], file: _A['その他のファイル'],
+            /* ボタン(B) */
+            menu: _B['ドロワー(☰)'], more: _B['メニュー(︙)'], moreH: _B['その他(︙)'], close: _B['閉じる(✕)'],
+            star: _B['お気に入り(☆)'], starOn: _B['お気に入り(★)'], search: _B['フォルダ内検索'], home: _B['ホーム'],
+            copy: _B['コピー'], move: _B['移動'], del: _B['削除・ゴミ箱'], ren: _B['名前変更'], share: _B['共有'],
+            openWith: _B['ほかのアプリで開く'], info: _B['プロパティ'], zipAdd: _B['zipに圧縮'], newFolder: _B['新しいフォルダ'],
+            list: _B['一覧表示'], grid: _B['アイコン表示'], sort: _B['並べ替え'], eye: _B['隠しファイルを表示'], selAll: _B['全選択'],
+            refresh: _B['更新'], gear: _B['設定'], dup: _B['タブを複製'], plus: _B['サーバーを追加'],
+            right: UI.find(x => x[0] == '格納・展開')[1], down: UI.find(x => x[0] == '格納・展開')[2],
+            check: L('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2.2),
+            openHere: L('<path d="M9 14l-5-5 5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
+            folderB: L(`<path d="${FOLDER_B}"/>`),
+        };
+        const sv = k => `<span class="sv">${SV[k]}</span>`;
+
 
         /* ===== ダミーデータ ===== */
         const NOW = Date.now(), DAY = 864e5, GB = 2 ** 30;
@@ -1065,12 +1288,12 @@
         /* ===== ストレージの一覧 =====
            kind: local=端末内 / pc=PCフォルダ(HTML版のテスト用) / server=さくら等 / gdrive=Googleドライブ */
         const STORAGES = [
-            { id: 'int', kind: 'local', icon: '📱', name: '内部ストレージ', real: '/storage/emulated/0', demo: demoInt, cap: [180 * GB, 256 * GB] },
-            { id: 'sd', kind: 'local', icon: '💾', name: 'SDカード', real: '/storage/1234-ABCD', demo: demoSd, cap: [120 * GB, 512 * GB] },
-            { id: 'pc', kind: 'pc', icon: '💻', name: 'PCフォルダ', real: '' },
-            { id: 'sakura', kind: 'server', icon: '🌐', name: 'さくら', real: '/home/sharu', demo: demoSakura },
-            { id: 'gd1', kind: 'gdrive', icon: '☁️', name: 'Googleドライブ', account: 'sharu.demo@gmail.com', real: 'マイドライブ', demo: demoGd1, cap: [6.2 * GB, 15 * GB] },
-            { id: 'gd2', kind: 'gdrive', icon: '☁️', name: 'Googleドライブ', account: 'work.demo@gmail.com', real: 'マイドライブ', demo: demoGd2, cap: [1.1 * GB, 15 * GB] },
+            { id: 'int', kind: 'local', icon: SV.int, name: '内部ストレージ', real: '/storage/emulated/0', demo: demoInt, cap: [180 * GB, 256 * GB] },
+            { id: 'sd', kind: 'local', icon: SV.sd, name: 'SDカード', real: '/storage/1234-ABCD', demo: demoSd, cap: [120 * GB, 512 * GB] },
+            { id: 'pc', kind: 'pc', icon: SV.pc, name: 'PCフォルダ', real: '' },
+            { id: 'sakura', kind: 'server', icon: SV.server, name: 'さくら', real: '/home/sharu', demo: demoSakura },
+            { id: 'gd1', kind: 'gdrive', icon: SV.cloud, name: 'Googleドライブ', account: 'sharu.demo@gmail.com', real: 'マイドライブ', demo: demoGd1, cap: [6.2 * GB, 15 * GB] },
+            { id: 'gd2', kind: 'gdrive', icon: SV.cloud, name: 'Googleドライブ', account: 'work.demo@gmail.com', real: 'マイドライブ', demo: demoGd2, cap: [1.1 * GB, 15 * GB] },
         ];
         const stOf = id => STORAGES.find(s => s.id === id);
         /* Googleドライブのアカウントは「@」より前だけを表示します */
@@ -1079,8 +1302,8 @@
         const AC_COLORS = ['#3b8eea', '#22a06b', '#e08a00', '#c34fb5', '#e5534b', '#0f9fb0'];
         const acColor = st => AC_COLORS[STORAGES.filter(x => x.kind == 'gdrive').indexOf(st) % AC_COLORS.length];
         /* ストレージのアイコン(Googleドライブは頭文字の印付き) */
-        const ico = st => st.kind != 'gdrive' ? st.icon
-            : `<span class="gi">${st.icon}<i class="gb" style="background:${acColor(st)}"><b>${esc(st.account[0].toUpperCase())}</b></i></span>`;
+        const ico = st => st.kind != 'gdrive' ? `<span class="sv">${st.icon}</span>`
+            : `<span class="gi"><span class="sv">${st.icon}</span><i class="gb" style="background:${acColor(st)}"><b>${esc(st.account[0].toUpperCase())}</b></i></span>`;
         /* パス表示の先頭・ドロワーの場所の表記(Googleドライブはアカウント名、ほかはストレージ名) */
         const rootLabel = st => st.kind == 'gdrive' ? acName(st) : st.name;
 
@@ -1098,6 +1321,7 @@
                 ],
                 secOrder: ['storage', 'fav'],
                 fold: { storage: true, fav: false },
+                homeFold: { storage: false, fav: false }, /* ホームの格納状態(ドロワーとは別) */
                 view: 'list',
                 sort: { k: 'name', asc: true },
                 hidden: false,
@@ -1226,20 +1450,20 @@
             return i > 0 ? n.slice(i + 1).toLowerCase() : '';
         };
         const TYPES = [
-            ['🖼️', '画像', /^(jpe?g|png|gif|webp|bmp|heic|svg|ico)$/],
-            ['🎬', '動画', /^(mp4|mov|mkv|avi|webm|3gp)$/],
-            ['🎵', '音楽', /^(mp3|m4a|aac|flac|wav|ogg)$/],
-            ['📕', 'PDF', /^pdf$/],
-            ['🗜️', '圧縮ファイル', /^(zip|rar|7z|gz|tar)$/],
-            ['📦', 'アプリ(APK)', /^apk$/],
-            ['📝', '文書', /^(docx?|odt|rtf)$/],
-            ['📊', '表計算', /^(xlsx?|csv|ods)$/],
-            ['🌐', 'Webファイル', /^(html?|css|js|php|json|xml)$/],
-            ['📄', 'テキスト', /^(txt|md|log|ini|cfg)$/],
+            [sv('image'), '画像', /^(jpe?g|png|gif|webp|bmp|heic|svg|ico)$/],
+            [sv('video'), '動画', /^(mp4|mov|mkv|avi|webm|3gp)$/],
+            [sv('music'), '音楽', /^(mp3|m4a|aac|flac|wav|ogg)$/],
+            [sv('pdf'), 'PDF', /^pdf$/],
+            [sv('zip'), '圧縮ファイル', /^(zip|rar|7z|gz|tar)$/],
+            [sv('apk'), 'アプリ(APK)', /^apk$/],
+            [sv('doc'), '文書', /^(docx?|odt|rtf)$/],
+            [sv('sheet'), '表計算', /^(xlsx?|csv|ods)$/],
+            [sv('web'), 'Webファイル', /^(html?|css|js|php|json|xml)$/],
+            [sv('text'), 'テキスト', /^(txt|md|log|ini|cfg)$/],
         ];
         function ftype(n) {
             const e = ext(n);
-            return TYPES.find(t => t[2].test(e)) || ['📄', e ? e.toUpperCase() + 'ファイル' : 'ファイル'];
+            return TYPES.find(t => t[2].test(e)) || [sv('file'), e ? e.toUpperCase() + 'ファイル' : 'ファイル'];
         }
         function fmtSize(b) {
             if (b == null)
@@ -1430,7 +1654,7 @@
         function popMenu(x, y, list, up = false) {
             const pop = $('pop');
             pop.innerHTML = '<div class="pm">' + list.map((m, i) => m == '-' ? '<hr>'
-                : `<button data-i="${i}"${m.dis ? ' disabled' : ''}><span class="pc">${m.chk ? '✓' : (m.ic || '')}</span>${esc(m.t)}</button>`).join('') + '</div>';
+                : `<button data-i="${i}"${m.dis ? ' disabled' : ''}><span class="pc">${m.chk ? sv('check') : (m.ic ? sv(m.ic) : '')}</span>${esc(m.t)}</button>`).join('') + '</div>';
             pop.hidden = false;
             const pm = pop.firstChild, r = pm.getBoundingClientRect();
             pm.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
@@ -1446,10 +1670,10 @@
 
         /* ===== ウインドウ(確認・入力・情報) ===== */
         let closeModal = null;
-        function dialog({ title, html = '', input = null, ok = 'OK', cancel = 'キャンセル', danger = false }) {
+        function dialog({ title, icon = '', html = '', input = null, ok = 'OK', cancel = 'キャンセル', danger = false }) {
             return new Promise(res => {
                 const m = $('modal');
-                m.innerHTML = `<div class="dlg" role="dialog"><h3>${esc(title)}</h3><div class="bd">${html}</div>`
+                m.innerHTML = `<div class="dlg" role="dialog"><h3>${icon ? sv(icon) + ' ' : ''}${esc(title)}</h3><div class="bd">${html}</div>`
                     + (input != null ? `<input id="dlgIn" value="${esc(input)}">` : '')
                     + `<div class="bt">${cancel ? `<button data-r="0">${esc(cancel)}</button>` : ''}<button data-r="1" class="ok${danger ? ' danger' : ''}">${esc(ok)}</button></div></div>`;
                 m.hidden = false;
@@ -1486,15 +1710,19 @@
         /* ===== タブ ===== */
         function renderTabs() {
             const el = $('tabs');
+            if (isHome()) {
+                el.innerHTML = `<div class="brand">${appIc()}<span>たるファイラー</span></div>`;
+                return;
+            }
             el.innerHTML = S.tabs.map((t, i) => {
                 const st = stOf(t.st);
                 const name = tabName(t);
-                const close = i == S.cur ? '<span class="tx" data-x="1" aria-label="タブを閉じる">✕</span>' : '';
+                const close = i == S.cur ? `<span class="tx" data-x="1" aria-label="タブを閉じる">${sv('close')}</span>` : '';
                 return `<div class="tab${i == S.cur ? ' on' : ''}" data-i="${i}"><span class="ti">${ico(st)}</span><span class="tl">${esc(name)}</span>${close}</div>`;
-            }).join('') + '<button class="ib sm" id="tabAdd" aria-label="新しいタブ">＋</button>';
+            }).join('');
             const on = el.querySelector('.tab.on');
             if (on)
-                el.scrollLeft = Math.max(0, Math.min(el.scrollLeft, on.offsetLeft - 4), on.offsetLeft + on.offsetWidth - el.clientWidth + 44);
+                el.scrollLeft = Math.max(0, Math.min(el.scrollLeft, on.offsetLeft - 4), on.offsetLeft + on.offsetWidth - el.clientWidth + 4);
         }
         function switchTab(i) {
             if (i == S.cur)
@@ -1541,8 +1769,8 @@
         function tabMenu(it, x, y) {
             const i = +it.dataset.i, t = S.tabs[i];
             popMenu(x, y, [
-                { t: 'このタブを複製', ic: '⧉', act: () => addTab(t, i + 1) },
-                { t: 'このタブを閉じる', ic: '✕', act: () => closeTab(i) },
+                { t: 'このタブを複製', ic: 'dup', act: () => addTab(t, i + 1) },
+                { t: 'このタブを閉じる', ic: 'close', act: () => closeTab(i) },
                 { t: 'ほかのタブを閉じる', dis: S.tabs.length < 2, act: () => { S.tabs = [t]; S.cur = 0; leaveFolder(); save(); renderAll(); } },
                 { t: 'すべてのタブを閉じる', act: () => { S.tabs = []; S.cur = 0; leaveFolder(); save(); renderAll(); } },
             ]);
@@ -1552,18 +1780,17 @@
         function renderPath() {
             const b = $('bStar');
             b.hidden = isHome();
-            $('bSearch').hidden = isHome();
             if (isHome()) {
-                $('crRoot').innerHTML = '<span class="cr last">🏠 ホーム</span>';
+                $('crRoot').innerHTML = `<span class="cr one last">${sv('home')} ホーム</span>`;
                 $('crumbs').innerHTML = '';
                 fadeCrumbs();
                 return;
             }
             const t = tab(), st = stOf(t.st), fav = findFav(t.st, t.p);
-            b.textContent = fav ? '★' : '☆';
+            b.innerHTML = sv(fav ? 'starOn' : 'star');
             b.classList.toggle('on', !!fav);
             const n = t.p.length;
-            $('crRoot').innerHTML = `<button class="cr${n ? '' : ' last'}" data-d="0">${ico(st)} ${esc(rootLabel(st))}</button>` + (n ? '<span class="cs">›</span>' : '');
+            $('crRoot').innerHTML = `<button class="cr${n ? '' : ' last'}" data-d="0"><span class="rti">${ico(st)}</span><span class="rtn">${esc(rootLabel(st))}</span></button>` + (n ? '<span class="cs">›</span>' : '');
             const c = $('crumbs');
             c.innerHTML = t.p.map((s, i) => (i ? '<span class="cs">›</span>' : '') + `<button class="cr${i == n - 1 ? ' last' : ''}" data-d="${i + 1}">${esc(s)}</button>`).join('');
             c.scrollLeft = c.scrollWidth;
@@ -1672,20 +1899,25 @@
             $('main').innerHTML = `<div class="msg">${h}</div>`;
         }
         /* ===== ホーム(タブを全部閉じたとき) ===== */
-        function drawHome() {
+        function drawHome(keepScroll) {
+            const sc = $('main').scrollTop;
             const cards = STORAGES.map(st => {
                 const sub = st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : '';
                 return `<button class="hcard" data-hst="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${sub}${capHtml(st)}</div></button>`;
             }).join('');
             const favs = S.favs.length ? '<div class="hfavs">' + S.favs.map(f => {
-                const st = stOf(f.st), ac = st.kind == 'gdrive' ? `<span class="ac">${esc(acName(st))}</span>` : ''; /* Googleドライブはアカウント名を添えて区別します */
-                return `<button class="hfav" data-hfav="${f.id}"><span class="fs">★</span><span class="nm">${esc(f.name)}</span>${ac}</button>`;
+                const st = stOf(f.st);
+                /* Googleドライブは、名前の下にアカウント名を小さく出します(高さはほかと同じ) */
+                const label = st.kind == 'gdrive' ? `<span class="two"><span class="nm">${esc(f.name)}</span><span class="ac">${esc(acName(st))}</span></span>` : `<span class="nm">${esc(f.name)}</span>`;
+                return `<button class="hfav" data-hfav="${f.id}"><span class="fs">${sv('starOn')}</span>${label}</button>`;
             }).join('') + '</div>'
-                : '<div class="hnote">パス表示の ☆ をタップすると、今いる場所をお気に入りに登録できます。</div>';
-            $('main').innerHTML = `<div class="home"><h4>ストレージ</h4><div class="hcards">${cards}</div>`
-                + `<h4>お気に入り</h4>${favs}`
-                + `<h4>ゴミ箱</h4><div class="hcards"><button class="hcard" data-htrash="1"><span class="ic">🗑️</span><div class="tx"><div class="nm">ゴミ箱</div><div class="sub">0件・0 B</div></div></button></div></div>`;
-            $('main').scrollTop = 0;
+                : `<div class="hnote">パス表示の ${sv('star')} をタップすると、今いる場所をお気に入りに登録できます。</div>`;
+            const hf = S.homeFold || (S.homeFold = {});
+            const sec = (k, title, body) => `<button class="hsech" data-hsec="${k}"><span class="ar">${sv(hf[k] ? 'right' : 'down')}</span>${title}</button>` + (hf[k] ? '' : body);
+            $('main').innerHTML = `<div class="home">` + sec('storage', 'ストレージ', `<div class="hcards">${cards}</div>`)
+                + sec('fav', 'お気に入り', favs)
+                + `<div class="hsech" style="cursor:default"><span class="ar"></span>ゴミ箱</div><div class="hcards"><button class="hcard" data-htrash="1"><span class="ic">${sv('del')}</span><div class="tx"><div class="nm">ゴミ箱</div><div class="sub">0件・0 B</div></div></button></div></div>`;
+            $('main').scrollTop = keepScroll ? sc : 0;
         }
         function visible() {
             let a = items.filter(x => S.hidden || !x.name.startsWith('.'));
@@ -1715,7 +1947,7 @@
             main.innerHTML = `<div class="${S.view}${selMode ? ' selmode' : ''}">` + shown.map(x => {
                 const s = sel.has(x.name);
                 return `<div class="it${x.name.startsWith('.') ? ' hid' : ''}${s ? ' sel' : ''}" data-n="${esc(x.name)}">`
-                    + `<span class="ck">${s ? '✓' : ''}</span><span class="ic">${x.dir ? '📁' : ftype(x.name)[0]}</span>`
+                    + `<span class="ck">${s ? sv('check') : ''}</span><span class="ic">${x.dir ? sv('folder') : ftype(x.name)[0]}</span>`
                     + `<div class="tx"><div class="nm">${esc(x.name)}</div><div class="mt">${meta(x)}</div></div></div>`;
             }).join('') + '</div>';
         }
@@ -1752,7 +1984,7 @@
             for (const el of $('main').querySelectorAll('.it')) {
                 const s = sel.has(el.dataset.n);
                 el.classList.toggle('sel', s);
-                el.querySelector('.ck').textContent = s ? '✓' : '';
+                el.querySelector('.ck').innerHTML = s ? sv('check') : '';
             }
             drTop();
         }
@@ -1811,12 +2043,12 @@
         function opMore(x, y, up) {
             const list = selItems(), one = list.length == 1 ? list[0] : null;
             popMenu(x, y, [
-                { t: '共有', ic: '📤', act: () => toast('共有は、' + APPONLY) },
-                { t: 'ほかのアプリで開く', ic: '↗', dis: !one || one.dir, act: () => openFile(one) },
-                { t: 'お気に入りに追加', ic: '★', dis: !one || !one.dir, act: () => { const t = tab(); addFav(t.st, [...t.p, one.name]); save(); renderDrawer(); toast('お気に入りに登録しました'); } },
-                { t: 'zipに圧縮', ic: '🗜️', act: () => toast(SOON) },
+                { t: '共有', ic: 'share', act: () => toast('共有は、' + APPONLY) },
+                { t: 'ほかのアプリで開く', ic: 'openWith', dis: !one || one.dir, act: () => openFile(one) },
+                { t: 'お気に入りに追加', ic: 'starOn', dis: !one || !one.dir, act: () => { const t = tab(); addFav(t.st, [...t.p, one.name]); save(); renderDrawer(); toast('お気に入りに登録しました'); } },
+                { t: 'zipに圧縮', ic: 'zipAdd', act: () => toast(SOON) },
                 '-',
-                { t: 'プロパティ', ic: 'ℹ️', act: showProps },
+                { t: 'プロパティ', ic: 'info', act: showProps },
             ], up);
         }
 
@@ -1824,20 +2056,22 @@
         function moreMenu() {
             const r = $('bMore').getBoundingClientRect(), x = r.right, y = r.bottom;
             if (isHome()) {
-                popMenu(x, y, [{ t: '設定', ic: '⚙️', act: openSettings }]);
+                popMenu(x, y, [{ t: '設定', ic: 'gear', act: openSettings }]);
                 return;
             }
             popMenu(x, y, [
-                { t: '新しいフォルダ', ic: '📁', act: () => toast(SOON) },
+                { t: 'フォルダ内検索', ic: 'search', act: () => toggleSearch(true) },
+                '-',
+                { t: '新しいフォルダ', ic: 'newFolder', act: () => toast(SOON) },
                 '-',
                 { t: '一覧表示', chk: S.view == 'list', act: () => setView('list') },
                 { t: 'アイコン表示', chk: S.view == 'grid', act: () => setView('grid') },
-                { t: '並べ替え…', ic: '↕', act: () => sortMenu(x, y) },
+                { t: '並べ替え…', ic: 'sort', act: () => sortMenu(x, y) },
                 { t: '隠しファイルを表示', chk: S.hidden, act: () => { S.hidden = !S.hidden; save(); draw(); updateSel(); } },
                 '-',
-                { t: '全選択', ic: '☑', act: selectAll },
-                { t: '更新', ic: '⟳', act: () => renderMain() },
-                { t: '設定', ic: '⚙️', act: openSettings },
+                { t: '全選択', ic: 'selAll', act: selectAll },
+                { t: '更新', ic: 'refresh', act: () => renderMain() },
+                { t: '設定', ic: 'gear', act: openSettings },
             ]);
         }
         function setView(v) {
@@ -1862,7 +2096,7 @@
         const appIc = () => `<img class="appic" src="${$('appIcon').href}" alt="">`;
         function openSettings() {
             closeDrawer();
-            dialog({ title: '⚙️ 設定', html: `設定の項目は、これから追加していきます。<br><br>${appIc()}たるファイラー(HTML版)<br>バージョン: ${APP_VER}`, ok: '閉じる', cancel: null });
+            dialog({ title: '設定', icon: 'gear', html: `設定の項目は、これから追加していきます。<br><br>${appIc()}たるファイラー(HTML版)<br>バージョン: ${APP_VER}`, ok: '閉じる', cancel: null });
         }
 
         /* ===== ドロワー ===== */
@@ -1893,17 +2127,17 @@
         }
         function secHtml(key, title, body) {
             const f = !!S.fold[key];
-            return `<div class="sec" data-k="${key}"><button class="sech"><span class="ar">${f ? '▸' : '▾'}</span>${title}</button><div class="secb"${f ? ' hidden' : ''}>${body}</div></div>`;
+            return `<div class="sec" data-k="${key}"><button class="sech"><span class="ar">${sv(f ? 'right' : 'down')}</span>${title}</button><div class="secb"${f ? ' hidden' : ''}>${body}</div></div>`;
         }
         function renderDrawer() {
             const t = tab() || { st: null, p: [] };
             const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : ''}${capHtml(st)}</div></div>`).join('')
-                + '<div class="di add"><span class="ic">＋</span><div class="tx">サーバーを追加</div></div>';
+                + `<div class="di add"><span class="ic">${sv('plus')}</span><div class="tx">サーバーを追加</div></div>`;
             const favBody = S.favs.length ? S.favs.map(f => {
                 const st = stOf(f.st);
                 const where = (st.kind == 'gdrive' ? [acName(st), ...f.p] : f.p).join('/') || st.name;
-                return `<div class="di fav${t.st == f.st && samePath(t.p, f.p) ? ' cur' : ''}" data-id="${f.id}"><span class="ic fs">★</span><div class="tx"><div class="nm">${esc(f.name)}</div><div class="sub" data-full="${esc(where)}">${ico(st)} <span class="wh">${esc(where)}</span></div></div></div>`;
-            }).join('') : '<div class="dnote">パス表示の ☆ をタップすると、今いる場所を登録できます。</div>';
+                return `<div class="di fav${t.st == f.st && samePath(t.p, f.p) ? ' cur' : ''}" data-id="${f.id}"><span class="ic fs">${sv('starOn')}</span><div class="tx"><div class="nm">${esc(f.name)}</div><div class="sub" data-full="${esc(where)}">${ico(st)} <span class="wh">${esc(where)}</span></div></div></div>`;
+            }).join('') : `<div class="dnote">パス表示の ${sv('star')} をタップすると、今いる場所を登録できます。</div>`;
             const secs = { storage: secHtml('storage', 'ストレージ', stBody), fav: secHtml('fav', 'お気に入り', favBody) };
             $('secs').innerHTML = S.secOrder.map(k => secs[k]).join('');
             $('ver').innerHTML = `${appIc()}<span>たるファイラー(HTML版) ${APP_VER}</span>`;
@@ -1924,8 +2158,8 @@
             if (!f)
                 return;
             popMenu(x, y, [
-                { t: '今のタブで開く', ic: '↩', act: () => openSrc(favSrc(f), true) },
-                { t: '名前の変更', ic: '✏️', act: async () => {
+                { t: '今のタブで開く', ic: 'openHere', act: () => openSrc(favSrc(f), true) },
+                { t: '名前の変更', ic: 'ren', act: async () => {
                     const v = await dialog({ title: 'お気に入りの名前の変更', input: f.name, ok: '変更' });
                     if (v && v.trim()) {
                         f.name = v.trim();
@@ -1938,18 +2172,18 @@
                         renderTabs();
                     }
                 } },
-                { t: 'お気に入りから削除', ic: '🗑️', act: () => { S.favs = S.favs.filter(v => v !== f); save(); renderDrawer(); renderPath(); toast('お気に入りから外しました'); } },
+                { t: 'お気に入りから削除', ic: 'del', act: () => { S.favs = S.favs.filter(v => v !== f); save(); renderDrawer(); renderPath(); toast('お気に入りから外しました'); } },
             ]);
         }
         function storageMenu(it, x, y) {
             if (!it.dataset.st)
                 return;
             const st = stOf(it.dataset.st);
-            const list = [{ t: '今のタブで開く', ic: '↩', act: () => openSrc(stSrc(st), true) }];
+            const list = [{ t: '今のタブで開く', ic: 'openHere', act: () => openSrc(stSrc(st), true) }];
             if (st.kind == 'pc')
-                list.push({ t: '別のフォルダを選ぶ', ic: '📂', act: pickPc });
+                list.push({ t: '別のフォルダを選ぶ', ic: 'folderB', act: pickPc });
             if (st.kind == 'server')
-                list.push({ t: '接続の設定', ic: '⚙️', act: () => toast('サーバーの接続は、' + APPONLY) });
+                list.push({ t: '接続の設定', ic: 'gear', act: () => toast('サーバーの接続は、' + APPONLY) });
             popMenu(x, y, list);
         }
 
@@ -1994,19 +2228,14 @@
 
         /* ===== 操作の割り当て ===== */
         function wire() {
-            pressable($('tabs'), '.tab, #tabAdd', {
+            pressable($('tabs'), '.tab', {
                 tap: (it, e) => {
-                    if (it.id == 'tabAdd')
-                        addTab(isHome() ? stSrc(stOf('int')) : tab()); /* ホームでは内部ストレージの一番上を開きます */
-                    else if (e.target.closest('[data-x]'))
+                    if (e.target.closest('[data-x]'))
                         closeTab(+it.dataset.i);
                     else
                         switchTab(+it.dataset.i);
                 },
-                long: (it, x, y) => {
-                    if (it.id != 'tabAdd')
-                        tabMenu(it, x, y);
-                },
+                long: tabMenu,
             });
             $('crumbs').addEventListener('scroll', fadeCrumbs, { passive: true });
             pressable($('crWrap'), '.cr', {
@@ -2021,9 +2250,10 @@
             $('bMenu').onclick = () => drawerOpen() ? closeDrawer() : openDrawer();
             $('scrim').onclick = closeDrawer;
             $('bMore').onclick = moreMenu;
-            $('bSearch').onclick = () => {
+            /* フォルダ内検索(︙メニューから開き、✕で閉じます) */
+            window.toggleSearch = open => {
                 const r = $('searchRow');
-                r.hidden = !r.hidden;
+                r.hidden = open == null ? !r.hidden : !open;
                 if (!r.hidden)
                     $('q').focus();
                 else {
@@ -2038,7 +2268,7 @@
                 draw();
                 updateSel();
             };
-            $('qX').onclick = () => $('bSearch').onclick();
+            $('qX').onclick = () => toggleSearch(false);
 
             const main = $('main');
             pressable(main, '.it', {
@@ -2059,6 +2289,14 @@
                 },
             });
             main.addEventListener('click', e => {
+                const hs = e.target.closest('[data-hsec]');
+                if (hs) {
+                    const k = hs.dataset.hsec;
+                    S.homeFold[k] = !S.homeFold[k];
+                    save();
+                    drawHome(true);
+                    return;
+                }
                 const h = e.target.closest('[data-hst], [data-hfav], [data-htrash]');
                 if (h) {
                     if (h.dataset.hst)
@@ -2155,7 +2393,7 @@
                     else if (drawerOpen())
                         closeDrawer();
                     else if (!$('searchRow').hidden)
-                        $('bSearch').onclick();
+                        toggleSearch(false);
                     else if (selMode)
                         exitSelect();
                 }
@@ -2173,6 +2411,7 @@
                 pcRoot = (await idb.get('pcRoot')) || null;
             }
             catch { }
+            document.querySelectorAll('i[data-sv]').forEach(e => e.outerHTML = sv(e.dataset.sv)); /* HTMLに書いたアイコンをSVGにします */
             wire();
             renderAll();
             drTop();
