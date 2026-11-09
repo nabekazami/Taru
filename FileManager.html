@@ -616,10 +616,10 @@
             gap: 6px;
             max-width: 100%;
             height: 34px;
-            padding: 0 12px;
+            padding: 0 10px;
             font-size: 13px;
             border: 1px solid var(--line);
-            border-radius: 20px;
+            border-radius: 12px; /* ストレージのタイルと同じ角の丸い四角 */
             background: var(--panel);
         }
 
@@ -706,7 +706,7 @@
             z-index: 21;
             display: flex;
             flex-direction: column;
-            width: min(70vw, 260px);
+            width: min(74vw, 270px); /* 一番長いアカウント名(英字13文字 + .)が1行に入る幅 */
             background: var(--panel);
             box-shadow: var(--shadow);
             transform: translateX(-104%);
@@ -732,7 +732,7 @@
             align-items: center;
             gap: 6px;
             width: 100%;
-            padding: 10px 14px 5px;
+            padding: 10px 10px 5px;
             color: var(--tx2);
             font-size: 13px;
             font-weight: 700;
@@ -754,9 +754,9 @@
         .di {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             min-height: 40px; /* 1行の項目は約40px、2行の項目は約44px(押し間違えない程度に詰めています) */
-            padding: 4px 16px;
+            padding: 4px 12px 4px 10px;
             border-radius: 10px;
             cursor: pointer;
         }
@@ -790,6 +790,12 @@
             white-space: nowrap;
         }
 
+        /* Googleドライブのアカウント名(名前の後ろに並べます。大きさと色は2行目と同じ) */
+        .di .acn {
+            color: var(--tx2);
+            font-size: 11.5px;
+        }
+
         .di.cur {
             background: var(--accSoft);
         }
@@ -813,7 +819,7 @@
         }
 
         .dnote {
-            padding: 6px 16px 10px 54px;
+            padding: 6px 12px 10px 46px;
             color: var(--tx2);
             font-size: 12px;
             line-height: 1.6;
@@ -847,7 +853,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px 12px;
+            padding: 8px 12px 12px 10px;
             color: var(--tx2);
             font-size: 11px;
         }
@@ -1081,7 +1087,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-10b';
+        const APP_VER = '2026-11-10c';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -2131,7 +2137,7 @@
         }
         function renderDrawer() {
             const t = tab() || { st: null, p: [] };
-            const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : ''}${capHtml(st)}</div></div>`).join('')
+            const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}${st.kind == 'gdrive' ? ` <span class="acn">(${esc(acName(st))})</span>` : ''}</div>${capHtml(st)}</div></div>`).join('')
                 + `<div class="di add"><span class="ic">${sv('plus')}</span><div class="tx">サーバーを追加</div></div>`;
             const favBody = S.favs.length ? S.favs.map(f => {
                 const st = stOf(f.st);
