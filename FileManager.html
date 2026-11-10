@@ -321,25 +321,50 @@
             font-size: 13px;
         }
 
+        /* フォルダ部分: 1行に入らなければ2行(下の行に今いるフォルダ側を詰める)。
+           2行でも入らなければ、上の行だけを横にスクロール(前のほうから左端でぼかして隠れる) */
         #crumbs {
             flex: 1;
             min-width: 0;
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            justify-content: center;
             height: 46px;
+        }
+
+        .crl {
+            display: flex;
+            align-items: center;
+            min-width: 0;
             overflow-x: auto;
             white-space: nowrap;
             scrollbar-width: none;
         }
 
-        /* 頭の部分が隠れているときは、左端をぼかします(右へスワイプすると見えます) */
-        #crumbs.fadeL {
-            -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
-            mask-image: linear-gradient(to right, transparent, #000 28px);
+        .crl::-webkit-scrollbar {
+            display: none;
         }
 
-        #crumbs::-webkit-scrollbar {
-            display: none;
+        #crumbs.two .cr {
+            padding: 2px 4px;
+        }
+
+        #crL2 {
+            overflow: hidden;
+            padding-left: 1em; /* 2行目は全角1文字分ずらして、2行目だと分かるようにします */
+        }
+
+        #crL2:not(.meas) .cr.last {
+            flex: 0 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis; /* フォルダ名1つでも入らないときは末尾を「…」 */
+        }
+
+        /* 頭の部分が隠れているときは、左端をぼかします(右へスワイプすると見えます) */
+        #crL1.fadeL {
+            -webkit-mask-image: linear-gradient(to right, transparent, #000 28px);
+            mask-image: linear-gradient(to right, transparent, #000 28px);
         }
 
         .cr {
@@ -424,8 +449,33 @@
             opacity: .55;
         }
 
-        .it.sel {
+        .it.sel,
+        .it.clip {
             background: var(--accSoft);
+        }
+
+        /* コピー・移動を押したファイルの印(貼り付けかキャンセルまで、どのタブでも表示) */
+        .it .ic {
+            position: relative;
+        }
+
+        .it .cbm {
+            position: absolute;
+            left: -5px;
+            top: -4px;
+            display: grid;
+            place-items: center;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            background: var(--acc);
+            color: #fff;
+            font-size: 10px;
+            box-shadow: 0 0 0 2px var(--bg);
+        }
+
+        .it.cmove .ic > .sv {
+            opacity: .45; /* 移動するもの(ここから無くなるもの)は薄く */
         }
 
         .ck {
@@ -1187,7 +1237,10 @@
             <button id="bMenu" class="ib" aria-label="ドロワー"><i data-sv="menu"></i></button>
             <div id="crWrap">
                 <div id="crRoot"></div>
-                <div id="crumbs"></div>
+                <div id="crumbs">
+                    <div class="crl" id="crL1"></div>
+                    <div class="crl" id="crL2" hidden></div>
+                </div>
             </div>
             <button id="bStar" class="ib star" aria-label="お気に入り"><i data-sv="star"></i></button>
         </div>
@@ -1248,7 +1301,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-10g';
+        const APP_VER = '2026-11-11b';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -2060,7 +2113,9 @@
             b.hidden = isHome();
             if (isHome()) {
                 $('crRoot').innerHTML = `<span class="cr one last">${sv('home')} ホーム</span>`;
-                $('crumbs').innerHTML = '';
+                $('crL1').innerHTML = '';
+                $('crL2').hidden = true;
+                $('crumbs').classList.remove('two');
                 fadeCrumbs();
                 return;
             }
@@ -2068,13 +2123,41 @@
             b.innerHTML = sv(fav ? 'starOn' : 'star');
             b.classList.toggle('on', !!fav);
             const n = t.p.length;
-            $('crRoot').innerHTML = `<button class="cr${n ? '' : ' last'}" data-d="0"><span class="rti">${ico(st)}</span><span class="rtn">${esc(rootLabel(st))}</span></button>` + (n ? '<span class="cs">›</span>' : '');
-            const c = $('crumbs');
-            c.innerHTML = t.p.map((s, i) => (i ? '<span class="cs">›</span>' : '') + `<button class="cr${i == n - 1 ? ' last' : ''}" data-d="${i + 1}">${esc(s)}</button>`).join('');
-            c.scrollLeft = c.scrollWidth;
+            $('crRoot').innerHTML = `<button class="cr${n ? '' : ' last'}" data-d="0"><span class="rti">${ico(st)}</span><span class="rtn">${esc(rootLabel(st))}</span></button>`;
+            layoutCrumbs(t.p);
+        }
+        /* フォルダ部分を1行 or 2行に並べます(どの行も「›」から始まります) */
+        function layoutCrumbs(p) {
+            const n = p.length, c = $('crumbs'), l1 = $('crL1'), l2 = $('crL2');
+            const seg = i => `<span class="cs">›</span><button class="cr${i == n - 1 ? ' last' : ''}" data-d="${i + 1}">${esc(p[i])}</button>`;
+            const segs = p.map((_, i) => seg(i));
+            c.classList.remove('two');
+            l2.hidden = true;
+            l2.innerHTML = '';
+            l1.innerHTML = segs.join('');
+            if (n > 1 && l1.scrollWidth > l1.clientWidth + 1) {
+                /* 2行: 下の行に、今いるフォルダから順に入るだけ詰めます(最低1つ) */
+                c.classList.add('two');
+                l2.hidden = false;
+                l2.classList.add('meas'); /* 測るあいだは「…」で縮めない */
+                let k = 1;
+                l2.innerHTML = segs.slice(n - 1).join('');
+                while (k < n) {
+                    l2.innerHTML = segs.slice(n - k - 1).join('');
+                    if (l2.scrollWidth > l2.clientWidth + 1)
+                        break;
+                    k++;
+                }
+                l2.classList.remove('meas');
+                if (k >= n)
+                    k = n - 1; /* 上の行にも最低1つ残します */
+                l2.innerHTML = segs.slice(n - k).join('');
+                l1.innerHTML = segs.slice(0, n - k).join('');
+            }
+            l1.scrollLeft = l1.scrollWidth;
             fadeCrumbs();
         }
-        const fadeCrumbs = () => $('crumbs').classList.toggle('fadeL', $('crumbs').scrollLeft > 2);
+        const fadeCrumbs = () => $('crL1').classList.toggle('fadeL', $('crL1').scrollLeft > 2);
         function toggleStar() {
             const t = tab(), f = findFav(t.st, t.p);
             if (f) {
@@ -2227,10 +2310,12 @@
                 main.innerHTML = `<div class="msg">${query ? '一致するものはありません' : 'このフォルダは空です'}</div>`;
                 return;
             }
+            const t = tab(), here = clip && clip.st == t.st && samePath(clip.p, t.p);
             main.innerHTML = `<div class="${S.view}${selMode ? ' selmode' : ''}">` + shown.map(x => {
-                const s = sel.has(x.name);
-                return `<div class="it${x.name.startsWith('.') ? ' hid' : ''}${s ? ' sel' : ''}" data-n="${esc(x.name)}">`
-                    + `<span class="ck">${s ? sv('check') : ''}</span><span class="ic">${x.dir ? sv('folder') : ftype(x.name)[0]}</span>`
+                const s = sel.has(x.name), cm = here && clip.names.includes(x.name);
+                const mark = cm ? `<span class="cbm">${sv(clip.op == 'copy' ? 'copy' : 'move')}</span>` : '';
+                return `<div class="it${x.name.startsWith('.') ? ' hid' : ''}${s ? ' sel' : ''}${cm ? ' clip' + (clip.op == 'move' ? ' cmove' : '') : ''}" data-n="${esc(x.name)}">`
+                    + `<span class="ck">${s ? sv('check') : ''}</span><span class="ic">${x.dir ? sv('folder') : ftype(x.name)[0]}${mark}</span>`
                     + `<div class="tx"><div class="nm">${esc(x.name)}</div><div class="mt">${meta(x)}</div></div></div>`;
             }).join('') + '</div>';
         }
@@ -2307,11 +2392,14 @@
             const t = tab();
             clip = { op, st: t.st, p: [...t.p], names: list.map(x => x.name) };
             exitSelect();
-            toast('貼り付ける場所を開いて、「ここに貼り付け」を押してください');
+            draw(); /* 選んでいたファイルに印を付けます */
+            toast(`貼り付ける場所を開いて、「${op == 'copy' ? 'ここにコピー' : 'ここに移動'}」を押してください`);
         }
         function updateClip() {
             const show = !!clip && !selMode && !isHome();
             $('clipBar').hidden = !show;
+            if (clip)
+                $('cbPaste').textContent = clip.op == 'copy' ? 'ここにコピー' : 'ここに移動';
             if (clip)
                 $('cbText').innerHTML = `${sv(clip.op == 'copy' ? 'copy' : 'move')}${clip.names.length == 1 ? `「${esc(clip.names[0])}」` : clip.names.length + '件'}を${clip.op == 'copy' ? 'コピー' : '移動'}`;
         }
@@ -2809,7 +2897,7 @@
                 },
                 long: tabMenu,
             });
-            $('crumbs').addEventListener('scroll', fadeCrumbs, { passive: true });
+            $('crL1').addEventListener('scroll', fadeCrumbs, { passive: true });
             pressable($('crWrap'), '.cr', {
                 tap: it => {
                     const t = tab(), d = +it.dataset.d;
@@ -2903,6 +2991,8 @@
             $('cbX').onclick = () => {
                 clip = null;
                 updateClip();
+                if (!isHome())
+                    draw();
             };
             $('progX').onclick = () => {
                 if (job)
@@ -2985,12 +3075,18 @@
                     else if (clip) {
                         clip = null;
                         updateClip();
+                        if (!isHome())
+                            draw();
                     }
                 }
                 else if (e.key == 'Backspace' && !typing && !closeModal && tab() && tab().p.length)
                     go(tab().st, tab().p.slice(0, -1));
             });
-            window.addEventListener('resize', drTop);
+            window.addEventListener('resize', () => {
+                drTop();
+                if (!isHome())
+                    layoutCrumbs(tab().p); /* 幅が変わったら、パスの1行・2行を並べ直します */
+            });
             window.addEventListener('pagehide', save);
             document.addEventListener('visibilitychange', save);
         }
