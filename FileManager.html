@@ -556,6 +556,12 @@
             gap: 6px;
         }
 
+        .hgrp {
+            display: flex;
+            flex-direction: column;
+            gap: 6px; /* 並び同士のすき間は、タイル同士のすき間と同じ */
+        }
+
         .hcard {
             display: flex;
             align-items: center;
@@ -681,6 +687,145 @@
 
         #opbar .oi {
             font-size: 20px;
+        }
+
+        /* 貼り付けバー(コピー・移動を押したあと、貼り付けるまで表示) */
+        #clipBar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 6px 6px 14px;
+            background: var(--panel);
+            border-top: 1px solid var(--line);
+            font-size: 13px;
+        }
+
+        #clipBar .cbt {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #clipBar .cbt .sv {
+            margin-right: 6px;
+            color: var(--acc);
+        }
+
+        #clipBar .tb {
+            padding: 9px 12px;
+            font-size: 13px;
+        }
+
+        #clipBar .tb.pri {
+            background: var(--acc);
+            color: #fff;
+        }
+
+        /* 進み具合(時間がかかる操作のときだけ表示) */
+        #prog {
+            position: fixed;
+            left: 50%;
+            bottom: calc(140px + env(safe-area-inset-bottom)); /* お知らせ(下のほう)と重ならない高さ */
+            z-index: 45;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: min(92vw, 380px);
+            padding: 12px 12px 12px 16px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            transform: translateX(-50%);
+            font-size: 13px;
+        }
+
+        #prog .pt {
+            flex: 1;
+            min-width: 0;
+        }
+
+        #prog .pn {
+            overflow: hidden;
+            color: var(--tx2);
+            font-size: 11.5px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #prog .spin {
+            flex: none;
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid var(--line);
+            border-top-color: var(--acc);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 同じ名前があったときのウインドウ */
+        .cf {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 10px;
+        }
+
+        .cf label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 6px;
+            border-radius: 8px;
+            color: var(--tx);
+            cursor: pointer;
+        }
+
+        .cf label small {
+            display: block;
+            color: var(--tx2);
+            font-size: 11.5px;
+        }
+
+        .dlg .cf input {
+            flex: none;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            padding: 0;
+            accent-color: var(--acc);
+        }
+
+        .cfall {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            color: var(--tx2);
+            font-size: 13px;
+        }
+
+        .dlg .cfall input {
+            flex: none;
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            padding: 0;
+            accent-color: var(--acc);
+        }
+
+        .dlg .err {
+            margin-top: 6px;
+            color: var(--danger);
+            font-size: 12.5px;
         }
 
         #opbar button:disabled {
@@ -1060,6 +1205,12 @@
             <button data-op="ren" id="opRen"><span class="oi"><i data-sv="ren"></i></span>名前変更</button>
             <button data-op="more"><span class="oi"><i data-sv="moreH"></i></span>その他</button>
         </footer>
+        <!-- 貼り付けバー -->
+        <footer id="clipBar" hidden>
+            <span class="cbt" id="cbText"></span>
+            <button class="tb" id="cbX">キャンセル</button>
+            <button class="tb pri" id="cbPaste">ここに貼り付け</button>
+        </footer>
     </div>
 
     <div id="scrim" hidden></div>
@@ -1078,6 +1229,14 @@
     </nav>
     <div id="pop" hidden></div>
     <div id="modal" hidden></div>
+    <div id="prog" hidden>
+        <span class="spin"></span>
+        <div class="pt">
+            <div id="progT"></div>
+            <div class="pn" id="progN"></div>
+        </div>
+        <button class="tb" id="progX">中止</button>
+    </div>
     <div id="toast"></div>
 
     <script>
@@ -1089,7 +1248,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-10d';
+        const APP_VER = '2026-11-10g';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1102,7 +1261,7 @@
             }
             catch { }
         };
-        const SOON = 'この操作は次の段階(HTML②)で使えるようになります';
+        const SOON = 'この操作は、これからの段階で使えるようになります';
         const APPONLY = 'Androidアプリ版で使えるようになります';
 
         /* ===== アイコン(SVG)。見本: FileManager_icons.html。ストレージとファイルは A(色付き)、ボタンは B(線) ===== */
@@ -1299,7 +1458,7 @@
             { id: 'int', kind: 'local', icon: SV.int, name: '内部ストレージ', real: '/storage/emulated/0', demo: demoInt, cap: [180 * GB, 256 * GB] },
             { id: 'sd', kind: 'local', icon: SV.sd, name: 'SDカード', real: '/storage/1234-ABCD', demo: demoSd, cap: [120 * GB, 512 * GB] },
             { id: 'pc', kind: 'pc', icon: SV.pc, name: 'PCフォルダ', real: '' },
-            { id: 'sakura', kind: 'server', icon: SV.server, name: 'さくら', real: '/home/sharu', demo: demoSakura },
+            { id: 'sakura', kind: 'server', icon: SV.server, name: 'さくら', real: '/home/sharu', demo: demoSakura, cap: [8.4 * GB, 300 * GB] }, /* さくらの使用量はダミー(アプリ版で、接続したときに取れれば表示) */
             { id: 'gd1', kind: 'gdrive', icon: SV.cloud, name: 'Googleドライブ', account: 'sharu.demo@gmail.com', real: 'マイドライブ', demo: demoGd1, cap: [6.2 * GB, 15 * GB] },
             { id: 'gd2', kind: 'gdrive', icon: SV.cloud, name: 'Googleドライブ', account: 'work.demo@gmail.com', real: 'マイドライブ', demo: demoGd2, cap: [1.1 * GB, 15 * GB] },
         ];
@@ -1450,6 +1609,117 @@
         function realPath(st, p) {
             const base = st.kind == 'pc' ? (pcRoot ? pcRoot.name : 'PCフォルダ') : st.real;
             return [base, ...p].join('/');
+        }
+
+        /* ===== ファイル操作の部品(アプリ版ではここを Kotlin 側の処理に差し替えます) =====
+           PCフォルダ: 本物のファイルを操作します / ダミー: ブラウザの中だけで変更します(再読み込みで元に戻ります) */
+        const isPc = st => st.kind == 'pc';
+        function demoDir(st, p) {
+            let n = st.demo;
+            for (const s of p) {
+                n = n.c[s];
+                if (!n || !n.dir)
+                    throw { code: 'notfound' };
+            }
+            return n;
+        }
+        /* 名前があるか(あれば {dir}、なければ null) */
+        async function fsGet(st, p, name) {
+            if (!isPc(st)) {
+                const n = demoDir(st, p).c[name];
+                return n ? { dir: !!n.dir } : null;
+            }
+            const d = await pcDir(p);
+            try {
+                await d.getFileHandle(name);
+                return { dir: false };
+            }
+            catch { }
+            try {
+                await d.getDirectoryHandle(name);
+                return { dir: true };
+            }
+            catch { }
+            return null;
+        }
+        async function fsList(st, p) {
+            if (!isPc(st))
+                return Object.entries(demoDir(st, p).c).map(([name, v]) => ({ name, dir: !!v.dir }));
+            const a = [];
+            for await (const [name, e] of (await pcDir(p)).entries())
+                a.push({ name, dir: e.kind == 'directory' });
+            return a;
+        }
+        async function fsMkdir(st, p, name) {
+            if (!isPc(st)) {
+                demoDir(st, p).c[name] = { dir: true, mtime: Date.now(), c: {} };
+                return;
+            }
+            await (await pcDir(p)).getDirectoryHandle(name, { create: true });
+        }
+        async function fsRemove(st, p, name) {
+            if (!isPc(st)) {
+                delete demoDir(st, p).c[name];
+                return;
+            }
+            await (await pcDir(p)).removeEntry(name, { recursive: true });
+        }
+        async function fsCopyFile(src, sp, name, dst, dp, dn) {
+            if (!isPc(src)) {
+                const n = demoDir(src, sp).c[name];
+                demoDir(dst, dp).c[dn] = { dir: false, size: n.size, mtime: n.mtime };
+                return;
+            }
+            const f = await (await (await pcDir(sp)).getFileHandle(name)).getFile();
+            const h = await (await pcDir(dp)).getFileHandle(dn, { create: true });
+            const w = await h.createWritable();
+            await w.write(f);
+            await w.close();
+        }
+        /* 同じストレージの中で、中身をコピーせずに移動(名前変更)します。できなければ false */
+        async function fsMoveFast(st, sp, name, dp, dn) {
+            if (!isPc(st)) {
+                const s = demoDir(st, sp), d = demoDir(st, dp), n = s.c[name];
+                delete s.c[name];
+                d.c[dn] = n;
+                return true;
+            }
+            try {
+                const dir = await pcDir(sp);
+                const h = await dir.getFileHandle(name).catch(() => dir.getDirectoryHandle(name));
+                if (!h.move)
+                    return false;
+                if (samePath(sp, dp))
+                    await h.move(dn);
+                else
+                    await h.move(await pcDir(dp), dn);
+                return true;
+            }
+            catch {
+                return false;
+            }
+        }
+        /* 「名前 (2).txt」のように、空いている名前を探します */
+        async function uniqName(st, p, name, isDir) {
+            const dot = isDir ? -1 : name.lastIndexOf('.');
+            const base = dot > 0 ? name.slice(0, dot) : name, ex = dot > 0 ? name.slice(dot) : '';
+            for (let i = 2; ; i++) {
+                const n = `${base} (${i})${ex}`;
+                if (!(await fsGet(st, p, n)))
+                    return n;
+            }
+        }
+        /* 名前のチェック(問題があれば理由を返します) */
+        function badName(v) {
+            if (!v)
+                return '名前を入力してください';
+            if (/[\\/:*?"<>|]/.test(v))
+                return '使えない文字が入っています( \\ / : * ? " < > | )';
+            if (v == '.' || v == '..')
+                return 'この名前は使えません';
+            if (v.length > 200)
+                return '名前が長すぎます';
+            return '';
         }
 
         /* ===== 表示用の小物 ===== */
@@ -1909,10 +2179,15 @@
         /* ===== ホーム(タブを全部閉じたとき) ===== */
         function drawHome(keepScroll) {
             const sc = $('main').scrollTop;
-            const cards = STORAGES.map(st => {
+            const card = st => {
                 const sub = st.kind == 'gdrive' ? `<div class="sub">${esc(acName(st))}</div>` : '';
-                return `<button class="hcard" data-hst="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${sub}${capHtml(st)}</div></button>`;
-            }).join('');
+                /* 使用量の棒グラフがないタイルも、見えない棒グラフを入れて内部ストレージと同じ高さにそろえます */
+                const ghost = st.cap ? '' : '<div class="bar" style="visibility:hidden"></div>';
+                return `<button class="hcard" data-hst="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}</div>${sub}${capHtml(st)}${ghost}</div></button>`;
+            };
+            /* Googleドライブは背の高いタイルなので、1つ目のGoogleドライブの前で改行して別の並びにします(ほかのタイルが引き伸ばされないように) */
+            const grp = list => list.length ? `<div class="hcards">${list.map(card).join('')}</div>` : '';
+            const cards = grp(STORAGES.filter(st => st.kind != 'gdrive')) + grp(STORAGES.filter(st => st.kind == 'gdrive'));
             const favs = S.favs.length ? '<div class="hfavs">' + S.favs.map(f => {
                 const st = stOf(f.st);
                 /* Googleドライブは、名前の下にアカウント名を小さく出します(高さはほかと同じ) */
@@ -1922,7 +2197,7 @@
                 : `<div class="hnote">パス表示の ${sv('star')} をタップすると、今いる場所をお気に入りに登録できます。</div>`;
             const hf = S.homeFold || (S.homeFold = {});
             const sec = (k, title, body) => `<button class="hsech" data-hsec="${k}"><span class="ar">${sv(hf[k] ? 'right' : 'down')}</span>${title}</button>` + (hf[k] ? '' : body);
-            $('main').innerHTML = `<div class="home">` + sec('storage', 'ストレージ', `<div class="hcards">${cards}</div>`)
+            $('main').innerHTML = `<div class="home">` + sec('storage', 'ストレージ', `<div class="hgrp">${cards}</div>`)
                 + sec('fav', 'お気に入り', favs)
                 + `<div class="hsech" style="cursor:default"><span class="ar"></span>ゴミ箱</div><div class="hcards"><button class="hcard" data-htrash="1"><span class="ic">${sv('del')}</span><div class="tx"><div class="nm">ゴミ箱</div><div class="sub">0件・0 B</div></div></button></div></div>`;
             $('main').scrollTop = keepScroll ? sc : 0;
@@ -1983,6 +2258,7 @@
             $('top').hidden = selMode;
             $('selTop').hidden = !selMode;
             $('opbar').hidden = !selMode;
+            updateClip();
             $('selCount').textContent = `${sel.size}件選択中`;
             $('selAll').textContent = shown.length && sel.size == shown.length ? '全解除' : '全選択';
             $('opRen').disabled = sel.size != 1;
@@ -2022,6 +2298,294 @@
         }
         const selItems = () => shown.filter(x => sel.has(x.name));
 
+        /* ===== コピー・移動(貼り付けバー) ===== */
+        let clip = null; /* { op: 'copy' | 'move', st, p, names } */
+        function setClip(op) {
+            const list = selItems();
+            if (!list.length)
+                return;
+            const t = tab();
+            clip = { op, st: t.st, p: [...t.p], names: list.map(x => x.name) };
+            exitSelect();
+            toast('貼り付ける場所を開いて、「ここに貼り付け」を押してください');
+        }
+        function updateClip() {
+            const show = !!clip && !selMode && !isHome();
+            $('clipBar').hidden = !show;
+            if (clip)
+                $('cbText').innerHTML = `${sv(clip.op == 'copy' ? 'copy' : 'move')}${clip.names.length == 1 ? `「${esc(clip.names[0])}」` : clip.names.length + '件'}を${clip.op == 'copy' ? 'コピー' : '移動'}`;
+        }
+
+        /* 進み具合(0.3秒以上かかるときだけ表示します) */
+        let job = null;
+        function jobStart(title) {
+            job = { cancel: false, n: 0, cur: '', title, policy: null };
+            const j = job;
+            j.t = setTimeout(() => {
+                if (job === j)
+                    $('prog').hidden = false;
+            }, 300);
+            progDraw();
+            return j;
+        }
+        function progDraw() {
+            if (!job)
+                return;
+            $('progT').textContent = `${job.title}… ${job.n}件`;
+            $('progN').textContent = job.cur;
+        }
+        function jobEnd() {
+            if (job)
+                clearTimeout(job.t);
+            job = null;
+            $('prog').hidden = true;
+        }
+
+        /* 同じ名前があったとき: 上書き(最初に選択) / スキップ / 両方残す */
+        function askConflict(j, name, bothDir) {
+            if (j.policy)
+                return Promise.resolve(j.policy);
+            return new Promise(res => {
+                const m = $('modal');
+                const over = bothDir ? '統合する<small>フォルダの中身を合わせます(同じ名前のファイルは、またここで確認します)</small>' : '上書きする<small>今あるほうを置き換えます</small>';
+                m.innerHTML = `<div class="dlg" role="dialog"><h3>同じ名前があります</h3><div class="bd">「${esc(name)}」は、貼り付け先にすでにあります。</div>`
+                    + `<div class="cf"><label><input type="radio" name="cf" value="over" checked><span>${over}</span></label>`
+                    + `<label><input type="radio" name="cf" value="skip"><span>スキップ<small>このファイルは貼り付けません</small></span></label>`
+                    + `<label><input type="radio" name="cf" value="both"><span>両方残す<small>名前の後ろに (2) などを付けます</small></span></label></div>`
+                    + `<label class="cfall"><input type="checkbox" id="cfAll">以降も同じにする</label>`
+                    + `<div class="bt"><button data-r="0">中止</button><button data-r="1" class="ok">OK</button></div></div>`;
+                m.hidden = false;
+                const done = r => {
+                    const v = r ? m.querySelector('input[name=cf]:checked').value : 'cancel';
+                    if (r && $('cfAll').checked)
+                        j.policy = v;
+                    m.hidden = true;
+                    m.innerHTML = '';
+                    closeModal = null;
+                    res(v);
+                };
+                closeModal = () => done(0);
+                m.onclick = e => {
+                    const b = e.target.closest('[data-r]');
+                    if (b)
+                        done(+b.dataset.r);
+                };
+            });
+        }
+
+        /* 1つ(フォルダなら中身ごと)を貼り付けます。merge: 貼り付け先に同じ名前のフォルダがあり、中身を合わせるとき */
+        async function putEntry(j, src, sp, name, dst, dp, dn, move, merge) {
+            if (j.cancel)
+                return;
+            const info = await fsGet(src, sp, name);
+            if (!info)
+                return;
+            j.cur = name;
+            progDraw();
+            if (move && !merge && src === dst && await fsMoveFast(src, sp, name, dp, dn)) {
+                j.n++;
+                progDraw();
+                return;
+            }
+            if (info.dir) {
+                if (!merge)
+                    await fsMkdir(dst, dp, dn);
+                for (const ch of await fsList(src, [...sp, name])) {
+                    if (j.cancel)
+                        return;
+                    let cn = ch.name, m = false;
+                    const ex = await fsGet(dst, [...dp, dn], cn);
+                    if (ex) {
+                        const a = await askConflict(j, cn, ex.dir && ch.dir);
+                        if (a == 'cancel') {
+                            j.cancel = true;
+                            return;
+                        }
+                        if (a == 'skip')
+                            continue;
+                        if (a == 'both')
+                            cn = await uniqName(dst, [...dp, dn], cn, ch.dir);
+                        else if (ex.dir && ch.dir)
+                            m = true;
+                        else
+                            await fsRemove(dst, [...dp, dn], cn);
+                    }
+                    await putEntry(j, src, [...sp, name], ch.name, dst, [...dp, dn], cn, move, m);
+                }
+                /* 移動のときは、中身が全部移ったフォルダだけ消します(スキップしたものがあれば残します) */
+                if (move && !j.cancel && !(await fsList(src, [...sp, name])).length)
+                    await fsRemove(src, sp, name);
+            }
+            else {
+                await fsCopyFile(src, sp, name, dst, dp, dn);
+                if (move)
+                    await fsRemove(src, sp, name);
+                j.n++;
+                progDraw();
+            }
+        }
+
+        /* フォルダを移動・名前変更したとき、タブとお気に入りの場所も一緒に書き換えます */
+        function rewritePaths(fromSt, from, toSt, to) {
+            const under = (st, p) => st == fromSt && p.length >= from.length && from.every((x, i) => p[i] === x);
+            for (const o of [...S.tabs, ...S.favs])
+                if (under(o.st, o.p)) {
+                    o.p = [...to, ...o.p.slice(from.length)];
+                    o.st = toSt;
+                }
+            save();
+        }
+
+        async function paste() {
+            const c = clip, t = tab();
+            if (!c || !t)
+                return;
+            const src = stOf(c.st), dst = stOf(t.st);
+            if (isPc(src) != isPc(dst)) {
+                toast('HTML版では、PCフォルダとほかのストレージの間ではコピー・移動できません');
+                return;
+            }
+            const sameDir = c.st == t.st && samePath(c.p, t.p);
+            if (c.op == 'move' && sameDir) {
+                toast('移動元と同じ場所です');
+                return;
+            }
+            for (const n of c.names) {
+                const fp = [...c.p, n];
+                if (c.st == t.st && t.p.length >= fp.length && fp.every((x, i) => t.p[i] === x)) {
+                    toast(`「${n}」を、その中には${c.op == 'copy' ? 'コピー' : '移動'}できません`);
+                    return;
+                }
+            }
+            const move = c.op == 'move';
+            const j = jobStart(move ? '移動中' : 'コピー中');
+            const done = [];
+            try {
+                for (const name of c.names) {
+                    if (j.cancel)
+                        break;
+                    const info = await fsGet(src, c.p, name);
+                    if (!info)
+                        continue;
+                    let dn = name, merge = false;
+                    const ex = await fsGet(dst, t.p, name);
+                    if (sameDir)
+                        dn = await uniqName(dst, t.p, name, info.dir); /* 同じフォルダにコピーしたときは「(2)」を付けます */
+                    else if (ex) {
+                        const a = await askConflict(j, name, ex.dir && info.dir);
+                        if (a == 'cancel') {
+                            j.cancel = true;
+                            break;
+                        }
+                        if (a == 'skip')
+                            continue;
+                        if (a == 'both')
+                            dn = await uniqName(dst, t.p, name, info.dir);
+                        else if (ex.dir && info.dir)
+                            merge = true;
+                        else
+                            await fsRemove(dst, t.p, name);
+                    }
+                    await putEntry(j, src, c.p, name, dst, t.p, dn, move, merge);
+                    done.push([name, dn]);
+                }
+            }
+            catch (e) {
+                console.error(e);
+                toast(`「${j.cur}」を${move ? '移動' : 'コピー'}できませんでした`);
+            }
+            const n = j.n, canceled = j.cancel;
+            jobEnd();
+            if (move) {
+                for (const [name, dn] of done)
+                    if (!(await fsGet(src, c.p, name).catch(() => null)))
+                        rewritePaths(c.st, [...c.p, name], t.st, [...t.p, dn]);
+                clip = null;
+            }
+            if (canceled)
+                toast(`中止しました(${n}件済み)`);
+            else
+                toast(`${n}件を${move ? '移動' : 'コピー'}しました`);
+            if (!move)
+                clip = null;
+            renderAll();
+        }
+
+        /* ===== 名前の入力(名前変更・新しいフォルダ) ===== */
+        async function askName(title, icon, value, ok, check) {
+            let err = '';
+            for (; ;) {
+                const v = await dialog({ title, icon, input: value, ok, html: err ? `<div class="err">${esc(err)}</div>` : '' });
+                if (v == null)
+                    return null;
+                value = v.trim();
+                err = badName(value) || await check(value);
+                if (!err)
+                    return value;
+            }
+        }
+        async function renameSel() {
+            const x = selItems()[0], t = tab(), st = stOf(t.st);
+            if (!x)
+                return;
+            const v = await askName('名前の変更', 'ren', x.name, '変更', async v => {
+                if (v != x.name && v.toLowerCase() != x.name.toLowerCase() && await fsGet(st, t.p, v))
+                    return `「${v}」はすでにあります`;
+                return '';
+            });
+            if (v == null || v == x.name)
+                return;
+            if (!x.dir && ext(x.name) != ext(v) && !(await dialog({ title: '拡張子が変わります', html: `「.${esc(ext(x.name) || '(なし)')}」→「.${esc(ext(v) || '(なし)')}」<br>拡張子を変えると、ファイルが開けなくなることがあります。変更しますか?`, ok: '変更する' })))
+                return;
+            try {
+                let ok = await fsMoveFast(st, t.p, x.name, t.p, v);
+                if (!ok) {
+                    /* 名前を変える仕組みがないときは、新しい名前でコピーしてから元を消します(大文字・小文字だけの変更は、いったん別の名前を経由) */
+                    const j = jobStart('名前を変更中');
+                    const caseOnly = v.toLowerCase() == x.name.toLowerCase();
+                    const mid = caseOnly ? await uniqName(st, t.p, v + '_tmp', x.dir) : v;
+                    await putEntry(j, st, t.p, x.name, st, t.p, mid, true, false);
+                    if (caseOnly)
+                        await putEntry(j, st, t.p, mid, st, t.p, v, true, false);
+                    jobEnd();
+                }
+                rewritePaths(t.st, [...t.p, x.name], t.st, [...t.p, v]);
+                exitSelect();
+                toast('名前を変更しました');
+            }
+            catch (e) {
+                console.error(e);
+                jobEnd();
+                toast('名前を変更できませんでした');
+            }
+            renderAll();
+        }
+        async function newFolder() {
+            const t = tab(), st = stOf(t.st);
+            if (!t)
+                return;
+            let first;
+            try {
+                first = await fsGet(st, t.p, '新しいフォルダ') ? await uniqName(st, t.p, '新しいフォルダ', true) : '新しいフォルダ';
+            }
+            catch {
+                toast('このフォルダには作れません');
+                return;
+            }
+            const v = await askName('新しいフォルダ', 'newFolder', first, '作成', async v => await fsGet(st, t.p, v) ? `「${v}」はすでにあります` : '');
+            if (v == null)
+                return;
+            try {
+                await fsMkdir(st, t.p, v);
+                toast(`「${v}」を作成しました`);
+            }
+            catch (e) {
+                console.error(e);
+                toast('フォルダを作成できませんでした');
+            }
+            renderMain();
+        }
+
         function showProps() {
             const t = tab(), st = stOf(t.st), list = selItems();
             if (!list.length)
@@ -2054,7 +2618,7 @@
                 { t: '共有', ic: 'share', act: () => toast('共有は、' + APPONLY) },
                 { t: 'ほかのアプリで開く', ic: 'openWith', dis: !one || one.dir, act: () => openFile(one) },
                 { t: 'お気に入りに追加', ic: 'starOn', dis: !one || !one.dir, act: () => { const t = tab(); addFav(t.st, [...t.p, one.name]); save(); renderDrawer(); toast('お気に入りに登録しました'); } },
-                { t: 'zipに圧縮', ic: 'zipAdd', act: () => toast(SOON) },
+                { t: 'zipに圧縮', ic: 'zipAdd', act: () => toast('zipは、②-3で使えるようになります') },
                 '-',
                 { t: 'プロパティ', ic: 'info', act: showProps },
             ], up);
@@ -2070,7 +2634,7 @@
             popMenu(x, y, [
                 { t: 'フォルダ内検索', ic: 'search', act: () => toggleSearch(true) },
                 '-',
-                { t: '新しいフォルダ', ic: 'newFolder', act: () => toast(SOON) },
+                { t: '新しいフォルダ', ic: 'newFolder', act: newFolder },
                 '-',
                 { t: '一覧表示', chk: S.view == 'list', act: () => setView('list') },
                 { t: 'アイコン表示', chk: S.view == 'grid', act: () => setView('grid') },
@@ -2315,7 +2879,7 @@
                             openSrc(favSrc(f));
                     }
                     else
-                        toast('ゴミ箱は、次の段階(HTML②)で使えるようになります');
+                        toast('ゴミ箱は、次の段階(②-2)で使えるようになります');
                     return;
                 }
                 const b = e.target.closest('[data-act]');
@@ -2335,17 +2899,31 @@
             }, { passive: true });
 
             $('selX').onclick = exitSelect;
+            $('cbPaste').onclick = paste;
+            $('cbX').onclick = () => {
+                clip = null;
+                updateClip();
+            };
+            $('progX').onclick = () => {
+                if (job)
+                    job.cancel = true;
+            };
             $('selAll').onclick = selectAll;
             $('opbar').onclick = e => {
                 const b = e.target.closest('[data-op]');
                 if (!b || b.disabled)
                     return;
-                if (b.dataset.op == 'more') {
+                const op = b.dataset.op;
+                if (op == 'more') {
                     const r = b.getBoundingClientRect();
                     opMore(r.right, r.top - 4, true);
                 }
+                else if (op == 'copy' || op == 'move')
+                    setClip(op);
+                else if (op == 'ren')
+                    renameSel();
                 else
-                    toast(SOON);
+                    toast('削除は、次の段階(②-2)で使えるようになります');
             };
 
             /* ドロワー: 見出しタップで格納/展開・長押しで入れ替え、お気に入りは長押しで並べ替え/メニュー */
@@ -2387,7 +2965,7 @@
                 },
                 long: storageMenu,
             });
-            $('dTrash').onclick = () => toast('ゴミ箱は、' + SOON.replace('この操作は', ''));
+            $('dTrash').onclick = () => toast('ゴミ箱は、次の段階(②-2)で使えるようになります');
             $('dSet').onclick = openSettings;
 
             /* キーボード(PCで試すとき用): Esc=閉じる / Backspace=1つ上の階層へ */
@@ -2404,6 +2982,10 @@
                         toggleSearch(false);
                     else if (selMode)
                         exitSelect();
+                    else if (clip) {
+                        clip = null;
+                        updateClip();
+                    }
                 }
                 else if (e.key == 'Backspace' && !typing && !closeModal && tab() && tab().p.length)
                     go(tab().st, tab().p.slice(0, -1));
