@@ -724,15 +724,37 @@
             border-top: 1px solid var(--line);
         }
 
+        /* ボタンは、アイコンと文字のまわりだけが押せる大きさ(区画の真ん中に置きます) */
+        #opbar {
+            justify-content: space-around;
+        }
+
         #opbar button {
-            flex: 1;
+            flex: none;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             gap: 2px;
-            padding: 6px 2px;
+            min-width: 56px;
+            min-height: 48px;
+            padding: 5px 6px;
             border-radius: 10px;
             font-size: 12px;
+        }
+
+        /* キャンセルは「何もしないで選択をやめる」ボタンなので、控えめな色 */
+        #opbar [data-op=cancel] {
+            color: var(--tx2);
+        }
+
+        #opbar [data-op=empty] {
+            flex-direction: row;
+            gap: 8px;
+            padding: 8px 16px;
+            color: var(--danger);
+            font-size: 13px;
+            font-weight: 600;
         }
 
         #opbar .oi {
@@ -1115,6 +1137,79 @@
             background: var(--scrim);
         }
 
+        /* 下から出てくる選択画面(削除するとき) */
+        #modal.sheetm {
+            place-items: end center;
+            padding: 0;
+        }
+
+        .sheet {
+            width: min(100vw, 480px);
+            padding: 16px 16px calc(18px + env(safe-area-inset-bottom));
+            border-radius: 16px 16px 0 0;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            animation: sheetUp .18s ease-out;
+        }
+
+        @keyframes sheetUp {
+            from {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+        }
+
+        .sheet .sh {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .sheet .sh h3 {
+            flex: 1;
+            min-width: 0;
+            margin: 6px 0 0 4px;
+            font-size: 15px;
+            word-break: break-all;
+        }
+
+        .sheet .why {
+            margin: -6px 4px 12px;
+            color: var(--tx2);
+            font-size: 12.5px;
+        }
+
+        .sheet .sb {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin-top: 8px;
+            padding: 13px;
+            border-radius: 12px;
+            background: var(--acc);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .sheet .sb.danger {
+            background: var(--danger);
+        }
+
+        .sheet .sb.sec {
+            background: var(--panel2);
+            color: var(--tx);
+        }
+
+        .sheet .note {
+            margin-top: 6px;
+            color: var(--tx2);
+            font-size: 11.5px;
+            text-align: center;
+        }
+
         .dlg {
             width: min(92vw, 400px);
             padding: 18px;
@@ -1279,8 +1374,10 @@
             <button data-op="del"><span class="oi"><i data-sv="del"></i></span>削除</button>
             <button data-op="restore" hidden><span class="oi"><i data-sv="openHere"></i></span>元に戻す</button>
             <button data-op="purge" hidden><span class="oi"><i data-sv="del"></i></span>完全に削除</button>
+            <button data-op="empty" hidden><span class="oi"><i data-sv="del"></i></span>ゴミ箱を空にする</button>
             <button data-op="ren" id="opRen"><span class="oi"><i data-sv="ren"></i></span>名前変更</button>
             <button data-op="more"><span class="oi"><i data-sv="moreH"></i></span>その他</button>
+            <button data-op="cancel"><span class="oi"><i data-sv="close"></i></span>キャンセル</button>
         </footer>
         <!-- 貼り付けバー -->
         <footer id="clipBar" hidden>
@@ -1296,7 +1393,10 @@
             <div id="secs"></div>
             <div class="dsep"></div>
             <div class="di" id="dTrash"><span class="ic"><i data-sv="del"></i></span>
-                <div class="tx">ゴミ箱</div>
+                <div class="tx">
+                    <div class="nm">ゴミ箱</div>
+                    <div class="sub" id="dTrashSub"></div>
+                </div>
             </div>
             <div class="di" id="dSet"><span class="ic"><i data-sv="gear"></i></span>
                 <div class="tx">設定</div>
@@ -1325,7 +1425,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-11d';
+        const APP_VER = '2026-11-12d';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -2023,14 +2123,16 @@
         }
 
         /* ===== メニュー(︙・長押し) ===== */
+        /* up: 指定位置の上側に出します。x に { center: 中心のx } を渡すと、その位置を中心にして出します */
         function popMenu(x, y, list, up = false) {
             const pop = $('pop');
             pop.innerHTML = '<div class="pm">' + list.map((m, i) => m == '-' ? '<hr>'
                 : `<button data-i="${i}"${m.dis ? ' disabled' : ''}><span class="pc">${m.chk ? sv('check') : (m.ic ? sv(m.ic) : '')}</span>${esc(m.t)}</button>`).join('') + '</div>';
             pop.hidden = false;
             const pm = pop.firstChild, r = pm.getBoundingClientRect();
-            pm.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
-            pm.style.top = Math.max(8, Math.min(up ? y - r.height : y, innerHeight - r.height - 8)) + 'px'; /* up: 指定位置の上側に出します */
+            const left = typeof x == 'object' ? x.center - r.width / 2 : x;
+            pm.style.left = Math.max(8, Math.min(left, innerWidth - r.width - 8)) + 'px'; /* 画面からはみ出すときだけ端に寄せます */
+            pm.style.top = Math.max(8, Math.min(up ? y - r.height : y, innerHeight - r.height - 8)) + 'px';
             pop.onclick = e => {
                 const b = e.target.closest('button[data-i]');
                 if (e.target === pop || b)
@@ -2045,6 +2147,7 @@
         function dialog({ title, icon = '', html = '', input = null, ok = 'OK', cancel = 'キャンセル', danger = false }) {
             return new Promise(res => {
                 const m = $('modal');
+                $('toast').classList.remove('show');
                 m.innerHTML = `<div class="dlg" role="dialog"><h3>${icon ? sv(icon) + ' ' : ''}${esc(title)}</h3><div class="bd">${html}</div>`
                     + (input != null ? `<input id="dlgIn" value="${esc(input)}">` : '')
                     + `<div class="bt">${cancel ? `<button data-r="0">${esc(cancel)}</button>` : ''}<button data-r="1" class="ok${danger ? ' danger' : ''}">${esc(ok)}</button></div></div>`;
@@ -2275,6 +2378,7 @@
                 items = r;
                 clearTimeout(lt);
                 draw();
+                syncEmpty();
                 main.scrollTop = t.sc || 0;
             }
             catch (e) {
@@ -2388,14 +2492,18 @@
                 selMode = false;
             $('top').hidden = selMode;
             $('selTop').hidden = !selMode;
-            $('opbar').hidden = !selMode;
+            $('opbar').hidden = !(selMode || isTrash()); /* ゴミ箱のタブでは、選んでいなくても出します */
             updateClip();
             $('selCount').textContent = `${sel.size}件選択中`;
             $('selAll').textContent = shown.length && sel.size == shown.length ? '全解除' : '全選択';
             $('opRen').disabled = sel.size != 1;
-            const tr = isTrash(); /* ゴミ箱のタブでは「元に戻す」「完全に削除」だけ */
+            /* ふつう: コピー/移動/削除/名前変更/その他/キャンセル
+               ゴミ箱(選択中): 元に戻す/完全に削除/キャンセル  ゴミ箱(選択なし): ゴミ箱を空にする */
+            const tr = isTrash();
+            const ops = !tr ? ['copy', 'move', 'del', 'ren', 'more', 'cancel'] : selMode ? ['restore', 'purge', 'cancel'] : ['empty'];
             for (const b of $('opbar').querySelectorAll('[data-op]'))
-                b.hidden = tr != (b.dataset.op == 'restore' || b.dataset.op == 'purge');
+                b.hidden = !ops.includes(b.dataset.op);
+            syncEmpty();
             const g = $('main').firstElementChild;
             if (g)
                 g.classList.toggle('selmode', selMode);
@@ -2405,6 +2513,12 @@
                 el.querySelector('.ck').innerHTML = s ? sv('check') : '';
             }
             drTop();
+        }
+        /* 「ゴミ箱を空にする」は、ゴミ箱が空のときは押せません */
+        function syncEmpty() {
+            const b = $('opbar').querySelector('[data-op=empty]');
+            if (b)
+                b.disabled = !items.length;
         }
         function toggleSel(name) {
             if (sel.has(name))
@@ -2850,15 +2964,48 @@
         }
 
         /* 削除(選択 → 削除)。perm=true は「完全に削除」 */
-        async function deleteSel(perm) {
+        /* 削除の選択画面(下から出てきます)。'trash' / 'perm' / null(閉じた) */
+        function askDelete(label, st) {
+            const tr = hasTrash(st);
+            return askSheet(`${label}を削除しますか?`,
+                (tr ? `<button class="sb" data-r="trash">${sv('del')}ゴミ箱に移動</button>` : `<div class="why">${esc(st.name)}にはゴミ箱がないため、完全に削除します。</div>`)
+                + `<button class="sb danger" data-r="perm">完全に削除</button><div class="note">完全に削除すると元に戻せません</div>`);
+        }
+        /* 下から出てくる画面(見出し・✕・中身)。押したボタンの data-r、閉じたら null */
+        function askSheet(title, body) {
+            return new Promise(res => {
+                const m = $('modal');
+                $('toast').classList.remove('show'); /* お知らせが見出しに重ならないように */
+                m.classList.add('sheetm');
+                m.innerHTML = `<div class="sheet" role="dialog"><div class="sh"><h3>${esc(title)}</h3><button class="ib sm" data-r="" aria-label="閉じる">${sv('close')}</button></div>${body}</div>`;
+                m.hidden = false;
+                const done = r => {
+                    m.hidden = true;
+                    m.innerHTML = '';
+                    m.classList.remove('sheetm');
+                    closeModal = null;
+                    res(r || null);
+                };
+                closeModal = () => done(null);
+                m.onclick = e => {
+                    const b = e.target.closest('[data-r]');
+                    if (b)
+                        done(b.dataset.r);
+                    else if (e.target === m)
+                        done(null);
+                };
+            });
+        }
+        /* 削除(選択 → 削除 → ゴミ箱に移動 / 完全に削除) */
+        async function deleteSel() {
             const list = selItems(), t = tab(), st = stOf(t.st);
             if (!list.length)
                 return;
             const label = list.length == 1 ? `「${list[0].name}」` : `${list.length}件`;
-            if (perm || !hasTrash(st)) {
-                const why = hasTrash(st) ? '' : `${esc(st.name)}にはゴミ箱がないため、`;
-                if (!(await dialog({ title: '完全に削除', icon: 'del', html: `${why}${esc(label)}を完全に削除します。<br><b>元に戻せません。</b>`, ok: '完全に削除', danger: true })))
-                    return;
+            const how = await askDelete(label, st);
+            if (!how)
+                return;
+            if (how == 'perm') {
                 const j = jobStart('削除中');
                 j.total = list.length;
                 j.done = 0;
@@ -2927,8 +3074,8 @@
                 toast('ゴミ箱は空です');
                 return;
             }
-            const label = all ? `ゴミ箱の${list.length}件すべて` : list.length == 1 ? `「${list[0].label}」` : `${list.length}件`;
-            if (!(await dialog({ title: all ? 'ゴミ箱を空にする' : '完全に削除', icon: 'del', html: `${esc(label)}を完全に削除します。<br><b>元に戻せません。</b>`, ok: all ? '空にする' : '完全に削除', danger: true })))
+            const label = all ? `ゴミ箱の${list.length}件を${list.length > 1 ? 'すべて' : ''}` : list.length == 1 ? `「${list[0].label}」を` : `${list.length}件を`;
+            if (!(await askSheet(`${label}完全に削除しますか?`, `<button class="sb danger" data-r="ok">${all ? 'ゴミ箱を空にする' : '完全に削除'}</button><div class="note">完全に削除すると元に戻せません</div>`)))
                 return;
             for (const [st, ents] of trashGroups(list))
                 await purgeEntries(st, ents).catch(e => console.error(e));
@@ -2952,7 +3099,9 @@
         const trashSrc = () => ({ st: 'trash', p: [], fav: undefined, from: 'st:trash', name: 'ゴミ箱' });
         /* ホームのゴミ箱のタイルに、件数と容量を入れます */
         async function fillHomeTrash() {
-            const el = document.querySelector('[data-htrash] .sub');
+            fillTrashCount(document.querySelector('[data-htrash] .sub'));
+        }
+        async function fillTrashCount(el) {
             if (!el)
                 return;
             const a = await listTrash().catch(() => []);
@@ -3009,6 +3158,361 @@
             }
             renderAll();
         }
+        /* ===== zip(圧縮と展開) =====
+           Chrome に入っている圧縮の仕組み(CompressionStream の deflate-raw)を使います。追加の部品はいりません。
+           ・ファイル名は UTF-8 で保存します(日本語名が文字化けしないように)。
+           ・読むときは UTF-8 の印がなければ、UTF-8 として読めるか試し、だめなら Shift_JIS(Windowsの日本語zip)で読みます。
+           ・4GBを超えるzip(ZIP64)と、パスワード付きのzipは扱いません(案内を表示)。
+           ・HTML版は、ファイルを一度ぜんぶ読み込んでから処理します(1GBまで)。アプリ版では Kotlin 側で少しずつ処理します。
+           ・ダミーのストレージでは中身がないので、zipの中の一覧だけを覚えておき、展開するとその一覧どおりに作ります。 */
+        const ZIP_MAX = 1024 * 1024 * 1024;
+        const CRC_T = (() => {
+            const t = new Uint32Array(256);
+            for (let n = 0; n < 256; n++) {
+                let c = n;
+                for (let k = 0; k < 8; k++)
+                    c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+                t[n] = c >>> 0;
+            }
+            return t;
+        })();
+        function crc32(u8) {
+            let c = 0xFFFFFFFF;
+            for (let i = 0; i < u8.length; i++)
+                c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8);
+            return (c ^ 0xFFFFFFFF) >>> 0;
+        }
+        const pipeBytes = async (u8, ts) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(ts)).arrayBuffer());
+        const deflateRaw = u8 => pipeBytes(u8, new CompressionStream('deflate-raw'));
+        const inflateRaw = u8 => pipeBytes(u8, new DecompressionStream('deflate-raw'));
+        function dosTime(t) {
+            const d = new Date(t || Date.now());
+            return { time: (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date: ((Math.max(1980, d.getFullYear()) - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate() };
+        }
+        /* ファイルの読み書き(PCフォルダだけ。ダミーは中身がありません) */
+        async function fsRead(st, p, name) {
+            const f = await (await (await pcDir(p)).getFileHandle(name)).getFile();
+            return { u8: new Uint8Array(await f.arrayBuffer()), mtime: f.lastModified };
+        }
+        async function fsWrite(st, p, name, data) {
+            const h = await (await pcDir(p)).getFileHandle(name, { create: true });
+            const w = await h.createWritable();
+            await w.write(data);
+            await w.close();
+        }
+        async function mkdirP(st, p) {
+            let pp = [];
+            for (const s of p) {
+                if (!(await fsGet(st, pp, s)))
+                    await fsMkdir(st, pp, s);
+                pp = [...pp, s];
+            }
+        }
+
+        /* zipに入れるものを集めます(フォルダは中身ごと)。{ path, dir, u8?, size, mtime } */
+        async function zipCollect(j, st, p, name, prefix, out) {
+            if (j.cancel)
+                return;
+            const info = await fsGet(st, p, name);
+            if (!info)
+                return;
+            j.cur = name;
+            progDraw();
+            if (info.dir) {
+                out.push({ path: prefix + name + '/', dir: true, mtime: Date.now() });
+                for (const ch of await fsList(st, [...p, name]))
+                    await zipCollect(j, st, [...p, name], ch.name, prefix + name + '/', out);
+                return;
+            }
+            if (isPc(st)) {
+                const f = await fsRead(st, p, name);
+                j.bytes += f.u8.length;
+                if (j.bytes > ZIP_MAX)
+                    throw { code: 'toobig' };
+                out.push({ path: prefix + name, dir: false, u8: f.u8, size: f.u8.length, mtime: f.mtime });
+            }
+            else {
+                const n = demoDir(st, p).c[name];
+                out.push({ path: prefix + name, dir: false, size: n.size || 0, mtime: n.mtime });
+            }
+        }
+        /* zipの中身(バイト列)を作ります */
+        async function zipBuild(j, ents) {
+            const enc = new TextEncoder(), parts = [], cen = [];
+            let off = 0;
+            const u16 = (v, d, o) => d.setUint16(o, v, true), u32 = (v, d, o) => d.setUint32(o, v >>> 0, true);
+            for (const e of ents) {
+                if (j.cancel)
+                    return null;
+                j.cur = e.path;
+                progDraw();
+                const name = enc.encode(e.path), t = dosTime(e.mtime);
+                let data = new Uint8Array(0), method = 0, crc = 0;
+                if (!e.dir) {
+                    crc = crc32(e.u8);
+                    const z = await deflateRaw(e.u8);
+                    if (z.length < e.u8.length) {
+                        data = z;
+                        method = 8;
+                    }
+                    else
+                        data = e.u8;
+                }
+                const usize = e.dir ? 0 : e.u8.length;
+                const lh = new Uint8Array(30 + name.length), dv = new DataView(lh.buffer);
+                u32(0x04034b50, dv, 0); u16(20, dv, 4); u16(0x0800, dv, 6); u16(method, dv, 8); u16(t.time, dv, 10); u16(t.date, dv, 12);
+                u32(crc, dv, 14); u32(data.length, dv, 18); u32(usize, dv, 22); u16(name.length, dv, 26); u16(0, dv, 28);
+                lh.set(name, 30);
+                const ch = new Uint8Array(46 + name.length), cv = new DataView(ch.buffer);
+                u32(0x02014b50, cv, 0); u16(20, cv, 4); u16(20, cv, 6); u16(0x0800, cv, 8); u16(method, cv, 10); u16(t.time, cv, 12); u16(t.date, cv, 14);
+                u32(crc, cv, 16); u32(data.length, cv, 20); u32(usize, cv, 24); u16(name.length, cv, 28);
+                u32(e.dir ? 0x10 : 0, cv, 38); u32(off, cv, 42);
+                ch.set(name, 46);
+                parts.push(lh, data);
+                cen.push(ch);
+                off += lh.length + data.length;
+                if (off > 0xFFFFFFFF)
+                    throw { code: 'toobig' };
+            }
+            const cdSize = cen.reduce((s, c) => s + c.length, 0);
+            const eo = new Uint8Array(22), ev = new DataView(eo.buffer);
+            u32(0x06054b50, ev, 0); u16(ents.length, ev, 8); u16(ents.length, ev, 10); u32(cdSize, ev, 12); u32(off, ev, 16);
+            return new Blob([...parts, ...cen, eo], { type: 'application/zip' });
+        }
+        /* zipを読んで、中の一覧を返します。[{ path, dir, method, csize, size, off, crc }] */
+        function zipParse(u8) {
+            const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+            let e = -1;
+            for (let i = u8.length - 22; i >= Math.max(0, u8.length - 22 - 65535); i--)
+                if (dv.getUint32(i, true) == 0x06054b50) {
+                    e = i;
+                    break;
+                }
+            if (e < 0)
+                throw { code: 'notzip' };
+            const count = dv.getUint16(e + 10, true), cdOff = dv.getUint32(e + 16, true);
+            if (count == 0xFFFF || cdOff == 0xFFFFFFFF)
+                throw { code: 'zip64' };
+            const utf8 = new TextDecoder('utf-8', { fatal: true }), sjis = new TextDecoder('shift_jis');
+            const out = [];
+            let q = cdOff;
+            for (let k = 0; k < count; k++) {
+                if (dv.getUint32(q, true) != 0x02014b50)
+                    throw { code: 'broken' };
+                const flags = dv.getUint16(q + 8, true), method = dv.getUint16(q + 10, true);
+                const crc = dv.getUint32(q + 16, true), csize = dv.getUint32(q + 20, true), size = dv.getUint32(q + 24, true);
+                const nl = dv.getUint16(q + 28, true), xl = dv.getUint16(q + 30, true), cl = dv.getUint16(q + 32, true);
+                const off = dv.getUint32(q + 42, true), raw = u8.subarray(q + 46, q + 46 + nl);
+                let path;
+                if (flags & 0x0800)
+                    path = new TextDecoder().decode(raw);
+                else {
+                    try {
+                        path = utf8.decode(raw);
+                    }
+                    catch {
+                        path = sjis.decode(raw);
+                    }
+                }
+                if (flags & 1)
+                    throw { code: 'encrypted' };
+                path = path.replace(/\\/g, '/');
+                out.push({ path, dir: path.endsWith('/'), method, csize, size, off, crc });
+                q += 46 + nl + xl + cl;
+            }
+            return out;
+        }
+        /* 安全な場所だけ展開します(「..」や先頭の「/」など、外へ出る名前は飛ばします) */
+        function zipSafe(path) {
+            const segs = path.split('/').filter(s => s && s != '.');
+            if (segs.some(s => s == '..' || badName(s)))
+                return null;
+            return segs;
+        }
+        async function zipData(u8, e) {
+            const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+            if (dv.getUint32(e.off, true) != 0x04034b50)
+                throw { code: 'broken' };
+            const start = e.off + 30 + dv.getUint16(e.off + 26, true) + dv.getUint16(e.off + 28, true);
+            const raw = u8.subarray(start, start + e.csize);
+            if (e.method == 0)
+                return raw;
+            if (e.method == 8)
+                return inflateRaw(raw);
+            throw { code: 'method' };
+        }
+        const ZIP_ERR = {
+            notzip: 'zipファイルではないか、壊れています',
+            broken: 'zipファイルが壊れています',
+            zip64: '4GBを超えるzipは、HTML版では展開できません',
+            encrypted: 'パスワード付きのzipは展開できません',
+            method: 'この圧縮方式のzipは展開できません',
+            toobig: '大きすぎるため扱えません(HTML版は1GBまで)',
+        };
+        const zipErrText = (e, verb) => (e && ZIP_ERR[e.code]) || `${verb}できませんでした`;
+
+        /* 圧縮(選択 → その他 → zipに圧縮) */
+        async function zipSel() {
+            const list = selItems(), t = tab(), st = stOf(t.st);
+            if (!list.length)
+                return;
+            const first0 = (list.length == 1 ? (list[0].dir ? list[0].name : list[0].name.replace(/\.[^.]*$/, '') || list[0].name) : (t.p[t.p.length - 1] || rootLabel(st))) + '.zip';
+            const first = await fsGet(st, t.p, first0) ? await uniqName(st, t.p, first0, false) : first0;
+            let v = await askName('zipに圧縮', 'zipAdd', first, '圧縮', async v => {
+                const n = /\.zip$/i.test(v) ? v : v + '.zip';
+                return await fsGet(st, t.p, n) ? `「${n}」はすでにあります` : '';
+            });
+            if (v == null)
+                return;
+            if (!/\.zip$/i.test(v))
+                v += '.zip';
+            const j = jobStart('圧縮中');
+            j.total = list.length;
+            j.done = 0;
+            j.bytes = 0;
+            let err = null;
+            try {
+                const ents = [];
+                for (const x of list) {
+                    await zipCollect(j, st, t.p, x.name, '', ents);
+                    j.done++;
+                    progDraw();
+                }
+                if (!j.cancel) {
+                    if (ents.length > 65000)
+                        throw { code: 'toobig' };
+                    if (isPc(st)) {
+                        const blob = await zipBuild(j, ents);
+                        if (blob)
+                            await fsWrite(st, t.p, v, blob);
+                    }
+                    else {
+                        /* ダミー: 中の一覧を覚えておきます(大きさはおおよそ) */
+                        const size = Math.round(ents.reduce((a, e) => a + (e.size || 0), 0) * 0.8);
+                        demoDir(st, t.p).c[v] = { dir: false, size, mtime: Date.now(), zip: ents.map(e => ({ path: e.path, dir: e.dir, size: e.size })) };
+                    }
+                }
+            }
+            catch (e) {
+                console.error(e);
+                err = e;
+            }
+            const canceled = j.cancel;
+            jobEnd();
+            if (err) {
+                await fsRemove(st, t.p, v).catch(() => 0); /* 作りかけのzipは消します */
+                toast(zipErrText(err, '圧縮'));
+            }
+            else if (canceled)
+                toast('圧縮を中止しました');
+            else {
+                exitSelect();
+                toast(`「${v}」を作成しました`);
+            }
+            renderMain();
+        }
+
+        /* 展開(zipをタップ、または 選択 → その他 → 展開) */
+        async function unzipAsk(x) {
+            const base = x.name.replace(/\.zip$/i, '') || 'zip';
+            const how = await askSheet(`「${x.name}」を展開しますか?`,
+                `<button class="sb" data-r="folder">${sv('folderB')}「${esc(base)}」フォルダに展開</button>`
+                + `<button class="sb sec" data-r="here">ここに展開</button>`
+                + `<div class="note">パスワード付きのzipは展開できません</div>`);
+            if (how)
+                unzip(x, how == 'folder');
+        }
+        async function unzip(x, inFolder) {
+            const t = tab(), st = stOf(t.st);
+            const base = x.name.replace(/\.zip$/i, '') || 'zip';
+            let dest = [...t.p], made = '';
+            const j = jobStart('展開中');
+            let err = null, n = 0, skip = 0;
+            try {
+                /* 中の一覧 */
+                let list, u8 = null;
+                if (isPc(st)) {
+                    u8 = (await fsRead(st, t.p, x.name)).u8;
+                    if (u8.length > ZIP_MAX)
+                        throw { code: 'toobig' };
+                    list = zipParse(u8);
+                }
+                else {
+                    const node = demoDir(st, t.p).c[x.name];
+                    /* ダミーで、中の一覧を覚えていないzipは、見本の中身にします */
+                    list = (node && node.zip) || [{ path: base + '/', dir: true }, { path: base + '/readme.txt', dir: false, size: 1200 }, { path: base + '/image_01.jpg', dir: false, size: 820000 }];
+                }
+                if (inFolder) {
+                    made = await fsGet(st, t.p, base) ? await uniqName(st, t.p, base, true) : base;
+                    await fsMkdir(st, t.p, made);
+                    dest = [...t.p, made];
+                }
+                j.total = list.filter(e => !e.dir).length;
+                j.done = 0;
+                for (const e of list) {
+                    if (j.cancel)
+                        break;
+                    const segs = zipSafe(e.path);
+                    if (!segs || !segs.length) {
+                        skip++;
+                        continue;
+                    }
+                    j.cur = segs[segs.length - 1];
+                    progDraw();
+                    if (e.dir) {
+                        await mkdirP(st, [...dest, ...segs]);
+                        continue;
+                    }
+                    const dir = [...dest, ...segs.slice(0, -1)];
+                    await mkdirP(st, dir);
+                    let fn = segs[segs.length - 1];
+                    const ex = await fsGet(st, dir, fn);
+                    if (ex) {
+                        const a = await askConflict(j, fn, false);
+                        if (a == 'cancel') {
+                            j.cancel = true;
+                            break;
+                        }
+                        if (a == 'skip') {
+                            skip++;
+                            continue;
+                        }
+                        if (a == 'both')
+                            fn = await uniqName(st, dir, fn, false);
+                        else
+                            await fsRemove(st, dir, fn);
+                    }
+                    if (isPc(st)) {
+                        const data = await zipData(u8, e);
+                        await fsWrite(st, dir, fn, data);
+                    }
+                    else
+                        demoDir(st, dir).c[fn] = { dir: false, size: e.size || 0, mtime: Date.now() };
+                    j.done++;
+                    n++;
+                    progDraw();
+                }
+            }
+            catch (e) {
+                console.error(e);
+                err = e;
+            }
+            const canceled = j.cancel;
+            jobEnd();
+            if (err) {
+                if (made && !n)
+                    await fsRemove(st, t.p, made).catch(() => 0); /* 何も出せなかったときは、作ったフォルダを消します */
+                toast(zipErrText(err, '展開'));
+            }
+            else if (canceled)
+                toast(`展開を中止しました(${n}件は展開済み)`);
+            else
+                toast(`${made ? `「${made}」に` : ''}${n}件を展開しました${skip ? `(${skip}件はスキップ)` : ''}`);
+            exitSelect();
+            renderMain();
+        }
+        const isZip = x => !x.dir && /\.zip$/i.test(x.name);
+
         async function newFolder() {
             const t = tab(), st = stOf(t.st);
             if (!t)
@@ -3067,11 +3571,10 @@
                 { t: '共有', ic: 'share', act: () => toast('共有は、' + APPONLY) },
                 { t: 'ほかのアプリで開く', ic: 'openWith', dis: !one || one.dir, act: () => openFile(one) },
                 { t: 'お気に入りに追加', ic: 'starOn', dis: !one || !one.dir, act: () => { const t = tab(); addFav(t.st, [...t.p, one.name]); save(); renderDrawer(); toast('お気に入りに登録しました'); } },
-                { t: 'zipに圧縮', ic: 'zipAdd', act: () => toast('zipは、②-3で使えるようになります') },
+                { t: 'zipに圧縮', ic: 'zipAdd', act: zipSel },
+                { t: '展開', ic: 'folderB', dis: !one || !isZip(one), act: () => unzipAsk(one) },
                 '-',
                 { t: 'プロパティ', ic: 'info', act: showProps },
-                '-',
-                { t: '完全に削除', ic: 'del', act: () => deleteSel(true) },
             ], up);
         }
 
@@ -3084,8 +3587,6 @@
             }
             if (isTrash()) {
                 popMenu(x, y, [
-                    { t: 'ゴミ箱を空にする', ic: 'del', act: () => trashPurgeSel(items, true) },
-                    '-',
                     { t: 'ゴミ箱内を検索', ic: 'search', act: () => toggleSearch(true) },
                     { t: '一覧表示', chk: S.view == 'list', act: () => setView('list') },
                     { t: 'アイコン表示', chk: S.view == 'grid', act: () => setView('grid') },
@@ -3178,6 +3679,7 @@
             }).join('') : `<div class="dnote">パス表示の ${sv('star')} をタップすると、今いる場所を登録できます。</div>`;
             const secs = { storage: secHtml('storage', 'ストレージ', stBody), fav: secHtml('fav', 'お気に入り', favBody) };
             $('secs').innerHTML = S.secOrder.map(k => secs[k]).join('');
+            fillTrashCount($('dTrashSub')); /* ゴミ箱の件数と容量(開くたびに数え直します) */
             $('ver').innerHTML = `${appIc()}<span>たるファイラー(HTML版) ${APP_VER}</span>`;
             fitHead();
         }
@@ -3320,6 +3822,8 @@
                         trashInfo(x);
                     else if (x.dir)
                         go(tab().st, [...tab().p, x.name]);
+                    else if (isZip(x))
+                        unzipAsk(x); /* zipはタップで展開の選択画面 */
                     else
                         openFile(x);
                 },
@@ -3386,18 +3890,22 @@
                 const op = b.dataset.op;
                 if (op == 'more') {
                     const r = b.getBoundingClientRect();
-                    opMore(r.right, r.top - 4, true);
+                    opMore({ center: r.left + r.width / 2 }, r.top - 4, true); /* 「その他」の真上に、その他を中心にして出します */
                 }
                 else if (op == 'copy' || op == 'move')
                     setClip(op);
                 else if (op == 'ren')
                     renameSel();
                 else if (op == 'del')
-                    deleteSel(false);
+                    deleteSel();
                 else if (op == 'restore')
                     trashRestoreSel();
                 else if (op == 'purge')
                     trashPurgeSel();
+                else if (op == 'empty')
+                    trashPurgeSel(items, true);
+                else if (op == 'cancel')
+                    exitSelect();
             };
 
             /* ドロワー: 見出しタップで格納/展開・長押しで入れ替え、お気に入りは長押しで並べ替え/メニュー */
