@@ -1199,6 +1199,7 @@
             left: 50%;
             bottom: calc(84px + env(safe-area-inset-bottom));
             z-index: 60;
+            width: max-content; /* 画面の半分で折り返さないように */
             max-width: 88vw;
             padding: 10px 16px;
             border-radius: 10px;
@@ -1215,6 +1216,27 @@
         #toast.show {
             opacity: 1;
             transform: translateX(-50%);
+        }
+
+        /* 「元に戻す」付きのお知らせ */
+        #toast.act {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 6px 6px 6px 16px;
+            text-align: left;
+        }
+
+        #toast.act.show {
+            pointer-events: auto;
+        }
+
+        #toast .ta {
+            flex: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: #8cc4ff;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -1255,6 +1277,8 @@
             <button data-op="copy"><span class="oi"><i data-sv="copy"></i></span>コピー</button>
             <button data-op="move"><span class="oi"><i data-sv="move"></i></span>移動</button>
             <button data-op="del"><span class="oi"><i data-sv="del"></i></span>削除</button>
+            <button data-op="restore" hidden><span class="oi"><i data-sv="openHere"></i></span>元に戻す</button>
+            <button data-op="purge" hidden><span class="oi"><i data-sv="del"></i></span>完全に削除</button>
             <button data-op="ren" id="opRen"><span class="oi"><i data-sv="ren"></i></span>名前変更</button>
             <button data-op="more"><span class="oi"><i data-sv="moreH"></i></span>その他</button>
         </footer>
@@ -1301,7 +1325,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-11b';
+        const APP_VER = '2026-11-11d';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1514,6 +1538,8 @@
             { id: 'sakura', kind: 'server', icon: SV.server, name: 'さくら', real: '/home/sharu', demo: demoSakura, cap: [8.4 * GB, 300 * GB] }, /* さくらの使用量はダミー(アプリ版で、接続したときに取れれば表示) */
             { id: 'gd1', kind: 'gdrive', icon: SV.cloud, name: 'Googleドライブ', account: 'sharu.demo@gmail.com', real: 'マイドライブ', demo: demoGd1, cap: [6.2 * GB, 15 * GB] },
             { id: 'gd2', kind: 'gdrive', icon: SV.cloud, name: 'Googleドライブ', account: 'work.demo@gmail.com', real: 'マイドライブ', demo: demoGd2, cap: [1.1 * GB, 15 * GB] },
+            /* ゴミ箱(タブで開くための特別な場所。ドロワーやホームのストレージ欄には出しません) */
+            { id: 'trash', kind: 'trash', icon: SV.del, name: 'ゴミ箱', real: 'ゴミ箱', hidden: true },
         ];
         const stOf = id => STORAGES.find(s => s.id === id);
         /* Googleドライブのアカウントは「@」より前だけを表示します */
@@ -1571,6 +1597,7 @@
         }
         const tab = () => S.tabs[S.cur];
         const isHome = () => !S.tabs.length;
+        const isTrash = () => !isHome() && tab().st == 'trash';
         const samePath = (a, b) => a.length == b.length && a.every((x, i) => x === b[i]);
         const findFav = (st, p) => S.favs.find(f => f.st == st && samePath(f.p, p));
         /* タブの名前: 開いたお気に入りの名前(またはストレージ名)で固定。Googleドライブは「Googleドライブ」で固定
@@ -1646,7 +1673,14 @@
             }
             return Promise.all(jobs);
         }
+        const TRASH = '.TaruTrash';
         async function listDir(st, p) {
+            if (st.kind == 'trash')
+                return listTrash();
+            const a = await listDir0(st, p);
+            return p.length ? a : a.filter(x => x.name != TRASH); /* ゴミ箱の隠しフォルダは、隠しファイルを表示しても出しません */
+        }
+        async function listDir0(st, p) {
             if (st.kind == 'pc')
                 return listPc(p);
             if (st.kind == 'server' || st.kind == 'gdrive')
@@ -1816,12 +1850,19 @@
         const COL = new Intl.Collator('ja', { numeric: true, sensitivity: 'base' });
 
         let toastT;
-        function toast(s) {
+        /* お知らせ。opt = { act: 'ボタンの文字', fn: 押したときの処理 } を渡すと、ボタン付きで少し長く表示します */
+        function toast(s, opt) {
             const t = $('toast');
-            t.textContent = s;
+            t.classList.toggle('act', !!opt);
+            t.innerHTML = esc(s) + (opt ? `<button class="ta">${esc(opt.act)}</button>` : '');
+            if (opt)
+                t.querySelector('.ta').onclick = () => {
+                    t.classList.remove('show');
+                    opt.fn();
+                };
             t.classList.add('show');
             clearTimeout(toastT);
-            toastT = setTimeout(() => t.classList.remove('show'), 2400);
+            toastT = setTimeout(() => t.classList.remove('show'), opt ? 6000 : 2400);
         }
 
         /* 長押しのあとに続く「クリック」を1回だけ無視します(長押しで開いたメニューを誤って押さないため) */
@@ -2110,7 +2151,7 @@
         /* ===== パス表示とお気に入り登録 ===== */
         function renderPath() {
             const b = $('bStar');
-            b.hidden = isHome();
+            b.hidden = isHome() || isTrash();
             if (isHome()) {
                 $('crRoot').innerHTML = `<span class="cr one last">${sv('home')} ホーム</span>`;
                 $('crL1').innerHTML = '';
@@ -2270,7 +2311,7 @@
             };
             /* Googleドライブは背の高いタイルなので、1つ目のGoogleドライブの前で改行して別の並びにします(ほかのタイルが引き伸ばされないように) */
             const grp = list => list.length ? `<div class="hcards">${list.map(card).join('')}</div>` : '';
-            const cards = grp(STORAGES.filter(st => st.kind != 'gdrive')) + grp(STORAGES.filter(st => st.kind == 'gdrive'));
+            const cards = grp(STORAGES.filter(st => !st.hidden && st.kind != 'gdrive')) + grp(STORAGES.filter(st => st.kind == 'gdrive'));
             const favs = S.favs.length ? '<div class="hfavs">' + S.favs.map(f => {
                 const st = stOf(f.st);
                 /* Googleドライブは、名前の下にアカウント名を小さく出します(高さはほかと同じ) */
@@ -2284,21 +2325,25 @@
                 + sec('fav', 'お気に入り', favs)
                 + `<div class="hsech" style="cursor:default"><span class="ar"></span>ゴミ箱</div><div class="hcards"><button class="hcard" data-htrash="1"><span class="ic">${sv('del')}</span><div class="tx"><div class="nm">ゴミ箱</div><div class="sub">0件・0 B</div></div></button></div></div>`;
             $('main').scrollTop = keepScroll ? sc : 0;
+            fillHomeTrash();
         }
         function visible() {
-            let a = items.filter(x => S.hidden || !x.name.startsWith('.'));
+            const nm = x => x.label || x.name; /* ゴミ箱では、表示する名前(元の名前)は label */
+            let a = items.filter(x => S.hidden || !nm(x).startsWith('.'));
             if (query) {
                 const q = query.toLowerCase();
-                a = a.filter(x => x.name.toLowerCase().includes(q));
+                a = a.filter(x => nm(x).toLowerCase().includes(q));
             }
             const { k, asc } = S.sort, m = asc ? 1 : -1;
             const by = (x, y) => k == 'date' ? (x.mtime || 0) - (y.mtime || 0)
                 : k == 'size' ? (x.size || 0) - (y.size || 0)
-                    : k == 'type' ? COL.compare(ext(x.name), ext(y.name))
+                    : k == 'type' ? COL.compare(ext(nm(x)), ext(nm(y)))
                         : 0;
-            return a.sort((x, y) => (y.dir - x.dir) || m * (by(x, y) || COL.compare(x.name, y.name)));
+            return a.sort((x, y) => (y.dir - x.dir) || m * (by(x, y) || COL.compare(nm(x), nm(y))));
         }
         function meta(x) {
+            if (x.tr) /* ゴミ箱: 元の場所・削除日・自動で消えるまでの日数 */
+                return `${esc(fromText(stOf(x.tr.st), x.tr.e))}・${fmtDate(x.tr.e.deleted).slice(0, 10)} 削除・あと${daysLeft(x.tr.e)}日`;
             if (x.dir)
                 return x.mtime ? fmtDate(x.mtime) : 'フォルダ';
             return [fmtDate(x.mtime), fmtSize(x.size)].filter(Boolean).join('・');
@@ -2307,16 +2352,17 @@
             const main = $('main');
             shown = visible();
             if (!shown.length) {
-                main.innerHTML = `<div class="msg">${query ? '一致するものはありません' : 'このフォルダは空です'}</div>`;
+                main.innerHTML = `<div class="msg">${query ? '一致するものはありません' : isTrash() ? 'ゴミ箱は空です' : 'このフォルダは空です'}</div>`;
                 return;
             }
             const t = tab(), here = clip && clip.st == t.st && samePath(clip.p, t.p);
             main.innerHTML = `<div class="${S.view}${selMode ? ' selmode' : ''}">` + shown.map(x => {
                 const s = sel.has(x.name), cm = here && clip.names.includes(x.name);
                 const mark = cm ? `<span class="cbm">${sv(clip.op == 'copy' ? 'copy' : 'move')}</span>` : '';
-                return `<div class="it${x.name.startsWith('.') ? ' hid' : ''}${s ? ' sel' : ''}${cm ? ' clip' + (clip.op == 'move' ? ' cmove' : '') : ''}" data-n="${esc(x.name)}">`
-                    + `<span class="ck">${s ? sv('check') : ''}</span><span class="ic">${x.dir ? sv('folder') : ftype(x.name)[0]}${mark}</span>`
-                    + `<div class="tx"><div class="nm">${esc(x.name)}</div><div class="mt">${meta(x)}</div></div></div>`;
+                const lb = x.label || x.name;
+                return `<div class="it${lb.startsWith('.') ? ' hid' : ''}${s ? ' sel' : ''}${cm ? ' clip' + (clip.op == 'move' ? ' cmove' : '') : ''}" data-n="${esc(x.name)}">`
+                    + `<span class="ck">${s ? sv('check') : ''}</span><span class="ic">${x.dir ? sv('folder') : ftype(lb)[0]}${mark}</span>`
+                    + `<div class="tx"><div class="nm">${esc(lb)}</div><div class="mt">${meta(x)}</div></div></div>`;
             }).join('') + '</div>';
         }
         async function openFile(x) {
@@ -2347,6 +2393,9 @@
             $('selCount').textContent = `${sel.size}件選択中`;
             $('selAll').textContent = shown.length && sel.size == shown.length ? '全解除' : '全選択';
             $('opRen').disabled = sel.size != 1;
+            const tr = isTrash(); /* ゴミ箱のタブでは「元に戻す」「完全に削除」だけ */
+            for (const b of $('opbar').querySelectorAll('[data-op]'))
+                b.hidden = tr != (b.dataset.op == 'restore' || b.dataset.op == 'purge');
             const g = $('main').firstElementChild;
             if (g)
                 g.classList.toggle('selmode', selMode);
@@ -2396,7 +2445,7 @@
             toast(`貼り付ける場所を開いて、「${op == 'copy' ? 'ここにコピー' : 'ここに移動'}」を押してください`);
         }
         function updateClip() {
-            const show = !!clip && !selMode && !isHome();
+            const show = !!clip && !selMode && !isHome() && !isTrash();
             $('clipBar').hidden = !show;
             if (clip)
                 $('cbPaste').textContent = clip.op == 'copy' ? 'ここにコピー' : 'ここに移動';
@@ -2419,7 +2468,8 @@
         function progDraw() {
             if (!job)
                 return;
-            $('progT').textContent = `${job.title}… ${job.n}件`;
+            /* 件数は、選んだもの(フォルダは中身ごとで1件)の数で数えます */
+            $('progT').textContent = job.total ? `${job.title}… ${job.done} / ${job.total}件` : `${job.title}…`;
             $('progN').textContent = job.cur;
         }
         function jobEnd() {
@@ -2529,6 +2579,10 @@
             if (!c || !t)
                 return;
             const src = stOf(c.st), dst = stOf(t.st);
+            if (dst.kind == 'trash') {
+                toast('ゴミ箱には貼り付けできません');
+                return;
+            }
             if (isPc(src) != isPc(dst)) {
                 toast('HTML版では、PCフォルダとほかのストレージの間ではコピー・移動できません');
                 return;
@@ -2547,7 +2601,11 @@
             }
             const move = c.op == 'move';
             const j = jobStart(move ? '移動中' : 'コピー中');
+            j.total = c.names.length;
+            j.done = 0;
+            progDraw();
             const done = [];
+            let skip = 0, failed = false;
             try {
                 for (const name of c.names) {
                     if (j.cancel)
@@ -2565,8 +2623,10 @@
                             j.cancel = true;
                             break;
                         }
-                        if (a == 'skip')
+                        if (a == 'skip') {
+                            skip++;
                             continue;
+                        }
                         if (a == 'both')
                             dn = await uniqName(dst, t.p, name, info.dir);
                         else if (ex.dir && info.dir)
@@ -2575,14 +2635,18 @@
                             await fsRemove(dst, t.p, name);
                     }
                     await putEntry(j, src, c.p, name, dst, t.p, dn, move, merge);
+                    if (j.cancel)
+                        break;
                     done.push([name, dn]);
+                    j.done++;
+                    progDraw();
                 }
             }
             catch (e) {
                 console.error(e);
-                toast(`「${j.cur}」を${move ? '移動' : 'コピー'}できませんでした`);
+                failed = true;
             }
-            const n = j.n, canceled = j.cancel;
+            const n = j.done, canceled = j.cancel, cur = j.cur;
             jobEnd();
             if (move) {
                 for (const [name, dn] of done)
@@ -2590,13 +2654,310 @@
                         rewritePaths(c.st, [...c.p, name], t.st, [...t.p, dn]);
                 clip = null;
             }
-            if (canceled)
-                toast(`中止しました(${n}件済み)`);
+            const verb = move ? '移動' : 'コピー', sk = skip ? `(${skip}件はスキップ)` : '';
+            if (failed)
+                toast(`「${cur}」を${verb}できませんでした(${n}件は${verb}済み)`);
+            else if (canceled)
+                toast(`中止しました(${n}件は${verb}済み)`);
+            else if (!n && skip)
+                toast(`すべてスキップしました(${skip}件)`);
             else
-                toast(`${n}件を${move ? '移動' : 'コピー'}しました`);
+                toast(`${n}件を${verb}しました${sk}`);
             if (!move)
                 clip = null;
             renderAll();
+        }
+
+        /* ===== 削除とゴミ箱 =====
+           内部ストレージ・SDカード・PCフォルダ・Googleドライブ: 各ストレージの一番上の隠しフォルダ(.TaruTrash)の中に
+             「.TaruTrash/(番号)/(元の名前)」として移し、元の場所と削除日時を .TaruTrash/index.json に記録します。
+             (Googleドライブは、アプリ版ではドライブ自身のゴミ箱を使います。HTML版は同じ仕組みで代わりをします)
+           さくら(サーバー): ゴミ箱がないので、確認してから完全に削除します。 */
+        const TRASH_DAYS = 30;
+        const hasTrash = st => st.kind == 'local' || st.kind == 'pc' || st.kind == 'gdrive';
+        async function pcReady() {
+            try {
+                return !!pcRoot && await pcRoot.queryPermission({ mode: 'readwrite' }) == 'granted';
+            }
+            catch {
+                return false;
+            }
+        }
+        async function tIdx(st) {
+            if (!isPc(st))
+                return st._tidx || (st._tidx = []);
+            try {
+                const f = await (await (await pcDir([TRASH])).getFileHandle('index.json')).getFile();
+                return JSON.parse(await f.text()) || [];
+            }
+            catch {
+                return [];
+            }
+        }
+        async function tIdxSave(st, a) {
+            if (!isPc(st)) {
+                st._tidx = a;
+                return;
+            }
+            const h = await (await pcDir([TRASH])).getFileHandle('index.json', { create: true });
+            const w = await h.createWritable();
+            await w.write(JSON.stringify(a, null, 1));
+            await w.close();
+        }
+        /* ゴミ箱の一覧(全部のストレージをまとめて表示します) */
+        async function listTrash() {
+            const out = [];
+            for (const st of STORAGES) {
+                if (!hasTrash(st) || (isPc(st) && !(await pcReady())))
+                    continue;
+                for (const e of await tIdx(st).catch(() => []))
+                    out.push({ name: st.id + ':' + e.id, label: e.name, dir: e.dir, size: e.size, mtime: e.deleted, tr: { st: st.id, e } });
+            }
+            return out;
+        }
+        const daysLeft = e => Math.max(0, TRASH_DAYS - Math.floor((Date.now() - e.deleted) / DAY));
+        const fromText = (st, e) => [rootLabel(st), ...e.path].join('/');
+
+        /* ゴミ箱へ移します。戻り値は記録(元に戻すときに使います) */
+        async function trashItems(st, p, list) {
+            if (!(await fsGet(st, [], TRASH)))
+                await fsMkdir(st, [], TRASH);
+            const idx = await tIdx(st), out = [];
+            const j = jobStart('ゴミ箱に移動中');
+            j.total = list.length;
+            j.done = 0;
+            try {
+                for (const x of list) {
+                    if (j.cancel)
+                        break;
+                    const id = Date.now().toString(36) + uid();
+                    j.cur = x.name;
+                    progDraw();
+                    await fsMkdir(st, [TRASH], id);
+                    if (!(await fsMoveFast(st, p, x.name, [TRASH, id], x.name)))
+                        await putEntry(j, st, p, x.name, st, [TRASH, id], x.name, true, false);
+                    const e = { id, name: x.name, path: [...p], dir: !!x.dir, size: x.dir ? null : x.size, deleted: Date.now() };
+                    idx.push(e);
+                    out.push(e);
+                    j.done++;
+                    progDraw();
+                }
+            }
+            finally {
+                await tIdxSave(st, idx);
+                jobEnd();
+            }
+            return out;
+        }
+        /* ゴミ箱から元の場所へ戻します(元のフォルダがなければ作り直します) */
+        async function restoreEntries(st, ents) {
+            const idx = await tIdx(st);
+            const j = jobStart('元に戻し中');
+            j.total = ents.length;
+            j.done = 0;
+            let skip = 0, failed = false;
+            try {
+                for (const e of ents) {
+                    if (j.cancel)
+                        break;
+                    j.cur = e.name;
+                    progDraw();
+                    let pp = [];
+                    for (const s of e.path) {
+                        if (!(await fsGet(st, pp, s)))
+                            await fsMkdir(st, pp, s);
+                        pp = [...pp, s];
+                    }
+                    let dn = e.name, merge = false;
+                    const ex = await fsGet(st, e.path, e.name);
+                    if (ex) {
+                        const a = await askConflict(j, e.name, ex.dir && e.dir);
+                        if (a == 'cancel') {
+                            j.cancel = true;
+                            break;
+                        }
+                        if (a == 'skip') {
+                            skip++;
+                            continue;
+                        }
+                        if (a == 'both')
+                            dn = await uniqName(st, e.path, e.name, e.dir);
+                        else if (ex.dir && e.dir)
+                            merge = true;
+                        else
+                            await fsRemove(st, e.path, e.name);
+                    }
+                    if (merge || !(await fsMoveFast(st, [TRASH, e.id], e.name, e.path, dn)))
+                        await putEntry(j, st, [TRASH, e.id], e.name, st, e.path, dn, true, merge);
+                    await fsRemove(st, [TRASH], e.id).catch(() => 0);
+                    const k = idx.findIndex(x => x.id == e.id);
+                    if (k >= 0)
+                        idx.splice(k, 1);
+                    j.done++;
+                    progDraw();
+                }
+            }
+            catch (err) {
+                console.error(err);
+                failed = true;
+            }
+            const res = { n: j.done, skip, failed, cur: j.cur, canceled: j.cancel };
+            await tIdxSave(st, idx).catch(() => 0);
+            jobEnd();
+            return res;
+        }
+        /* ゴミ箱から完全に削除します */
+        async function purgeEntries(st, ents) {
+            const idx = await tIdx(st);
+            for (const e of ents) {
+                await fsRemove(st, [TRASH], e.id).catch(() => 0);
+                const k = idx.findIndex(x => x.id == e.id);
+                if (k >= 0)
+                    idx.splice(k, 1);
+            }
+            await tIdxSave(st, idx);
+        }
+        /* 30日を過ぎたものを自動で消します(起動したときと、ゴミ箱を開いたとき) */
+        async function autoPurge() {
+            for (const st of STORAGES) {
+                if (!hasTrash(st) || (isPc(st) && !(await pcReady())))
+                    continue;
+                try {
+                    const old = (await tIdx(st)).filter(e => !daysLeft(e));
+                    if (old.length)
+                        await purgeEntries(st, old);
+                }
+                catch { }
+            }
+        }
+        /* 選択したものの記録を、ストレージごとにまとめます(ゴミ箱のタブで使います) */
+        function trashGroups(list) {
+            const g = new Map();
+            for (const x of list) {
+                const st = stOf(x.tr.st);
+                if (!g.has(st))
+                    g.set(st, []);
+                g.get(st).push(x.tr.e);
+            }
+            return g;
+        }
+        function dropClip(stId, p, names) {
+            if (clip && clip.st == stId && samePath(clip.p, p)) {
+                clip.names = clip.names.filter(n => !names.includes(n));
+                if (!clip.names.length)
+                    clip = null;
+            }
+        }
+
+        /* 削除(選択 → 削除)。perm=true は「完全に削除」 */
+        async function deleteSel(perm) {
+            const list = selItems(), t = tab(), st = stOf(t.st);
+            if (!list.length)
+                return;
+            const label = list.length == 1 ? `「${list[0].name}」` : `${list.length}件`;
+            if (perm || !hasTrash(st)) {
+                const why = hasTrash(st) ? '' : `${esc(st.name)}にはゴミ箱がないため、`;
+                if (!(await dialog({ title: '完全に削除', icon: 'del', html: `${why}${esc(label)}を完全に削除します。<br><b>元に戻せません。</b>`, ok: '完全に削除', danger: true })))
+                    return;
+                const j = jobStart('削除中');
+                j.total = list.length;
+                j.done = 0;
+                let failed = false;
+                try {
+                    for (const x of list) {
+                        j.cur = x.name;
+                        progDraw();
+                        await fsRemove(st, t.p, x.name);
+                        j.done++;
+                    }
+                }
+                catch (e) {
+                    console.error(e);
+                    failed = true;
+                }
+                const n = j.done, cur = j.cur;
+                jobEnd();
+                dropClip(t.st, t.p, list.map(x => x.name));
+                exitSelect();
+                toast(failed ? `「${cur}」を削除できませんでした(${n}件は削除済み)` : `${n}件を完全に削除しました`);
+                renderAll();
+                return;
+            }
+            let ents = [];
+            try {
+                ents = await trashItems(st, t.p, list);
+            }
+            catch (e) {
+                console.error(e);
+                toast('ゴミ箱に移動できませんでした');
+            }
+            dropClip(t.st, t.p, ents.map(e => e.name));
+            exitSelect();
+            renderAll();
+            if (ents.length)
+                toast(`${ents.length == 1 ? `「${ents[0].name}」` : ents.length + '件'}をゴミ箱に移動しました`, {
+                    act: '元に戻す',
+                    fn: async () => {
+                        const r = await restoreEntries(st, ents);
+                        renderAll();
+                        toast(r.failed ? `「${r.cur}」を元に戻せませんでした` : `${r.n}件を元に戻しました`);
+                    },
+                });
+        }
+        /* ゴミ箱のタブ: 元に戻す・完全に削除・空にする */
+        async function trashRestoreSel(list = selItems()) {
+            if (!list.length)
+                return;
+            let n = 0, skip = 0, failed = '';
+            for (const [st, ents] of trashGroups(list)) {
+                const r = await restoreEntries(st, ents);
+                n += r.n;
+                skip += r.skip;
+                if (r.failed)
+                    failed = r.cur;
+                if (r.failed || r.canceled)
+                    break;
+            }
+            exitSelect();
+            renderAll();
+            toast(failed ? `「${failed}」を元に戻せませんでした(${n}件は戻し済み)` : `${n}件を元に戻しました${skip ? `(${skip}件はスキップ)` : ''}`);
+        }
+        async function trashPurgeSel(list = selItems(), all = false) {
+            if (!list.length) {
+                toast('ゴミ箱は空です');
+                return;
+            }
+            const label = all ? `ゴミ箱の${list.length}件すべて` : list.length == 1 ? `「${list[0].label}」` : `${list.length}件`;
+            if (!(await dialog({ title: all ? 'ゴミ箱を空にする' : '完全に削除', icon: 'del', html: `${esc(label)}を完全に削除します。<br><b>元に戻せません。</b>`, ok: all ? '空にする' : '完全に削除', danger: true })))
+                return;
+            for (const [st, ents] of trashGroups(list))
+                await purgeEntries(st, ents).catch(e => console.error(e));
+            exitSelect();
+            renderAll();
+            toast(all ? 'ゴミ箱を空にしました' : `${list.length}件を完全に削除しました`);
+        }
+        async function trashInfo(x) {
+            const st = stOf(x.tr.st), e = x.tr.e;
+            const html = dl([
+                ['名前', e.name],
+                ['種類', e.dir ? 'フォルダ' : ftype(e.name)[1]],
+                ['元の場所', fromText(st, e)],
+                ['サイズ', e.dir ? '—' : fmtSize(e.size)],
+                ['削除した日時', fmtDate(e.deleted)],
+                ['自動で消えるまで', `あと${daysLeft(e)}日`],
+            ]);
+            if (await dialog({ title: 'ゴミ箱の中身', icon: 'del', html, ok: '元に戻す', cancel: '閉じる' }))
+                trashRestoreSel([x]);
+        }
+        const trashSrc = () => ({ st: 'trash', p: [], fav: undefined, from: 'st:trash', name: 'ゴミ箱' });
+        /* ホームのゴミ箱のタイルに、件数と容量を入れます */
+        async function fillHomeTrash() {
+            const el = document.querySelector('[data-htrash] .sub');
+            if (!el)
+                return;
+            const a = await listTrash().catch(() => []);
+            const size = a.reduce((s, x) => s + (x.size || 0), 0);
+            el.textContent = `${a.length}件・${fmtSize(size)}`;
         }
 
         /* ===== 名前の入力(名前変更・新しいフォルダ) ===== */
@@ -2709,6 +3070,8 @@
                 { t: 'zipに圧縮', ic: 'zipAdd', act: () => toast('zipは、②-3で使えるようになります') },
                 '-',
                 { t: 'プロパティ', ic: 'info', act: showProps },
+                '-',
+                { t: '完全に削除', ic: 'del', act: () => deleteSel(true) },
             ], up);
         }
 
@@ -2717,6 +3080,21 @@
             const r = $('bMore').getBoundingClientRect(), x = r.right, y = r.bottom;
             if (isHome()) {
                 popMenu(x, y, [{ t: '設定', ic: 'gear', act: openSettings }]);
+                return;
+            }
+            if (isTrash()) {
+                popMenu(x, y, [
+                    { t: 'ゴミ箱を空にする', ic: 'del', act: () => trashPurgeSel(items, true) },
+                    '-',
+                    { t: 'ゴミ箱内を検索', ic: 'search', act: () => toggleSearch(true) },
+                    { t: '一覧表示', chk: S.view == 'list', act: () => setView('list') },
+                    { t: 'アイコン表示', chk: S.view == 'grid', act: () => setView('grid') },
+                    { t: '並べ替え…', ic: 'sort', act: () => sortMenu(x, y) },
+                    '-',
+                    { t: '全選択', ic: 'selAll', act: selectAll },
+                    { t: '更新', ic: 'refresh', act: () => renderMain() },
+                    { t: '設定', ic: 'gear', act: openSettings },
+                ]);
                 return;
             }
             popMenu(x, y, [
@@ -2791,7 +3169,7 @@
         }
         function renderDrawer() {
             const t = tab() || { st: null, p: [] };
-            const stBody = STORAGES.map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}${st.kind == 'gdrive' ? ` <span class="acn">(${esc(acName(st))})</span>` : ''}</div>${capHtml(st)}</div></div>`).join('')
+            const stBody = STORAGES.filter(st => !st.hidden).map(st => `<div class="di st${t.st == st.id && !t.p.length ? ' cur' : ''}" data-st="${st.id}"><span class="ic">${ico(st)}</span><div class="tx"><div class="nm">${esc(st.name)}${st.kind == 'gdrive' ? ` <span class="acn">(${esc(acName(st))})</span>` : ''}</div>${capHtml(st)}</div></div>`).join('')
                 + `<div class="di add"><span class="ic">${sv('plus')}</span><div class="tx">サーバーを追加</div></div>`;
             const favBody = S.favs.length ? S.favs.map(f => {
                 const st = stOf(f.st);
@@ -2938,6 +3316,8 @@
                         return;
                     if (selMode)
                         toggleSel(x.name);
+                    else if (x.tr)
+                        trashInfo(x);
                     else if (x.dir)
                         go(tab().st, [...tab().p, x.name]);
                     else
@@ -2967,7 +3347,7 @@
                             openSrc(favSrc(f));
                     }
                     else
-                        toast('ゴミ箱は、次の段階(②-2)で使えるようになります');
+                        openSrc(trashSrc());
                     return;
                 }
                 const b = e.target.closest('[data-act]');
@@ -3012,8 +3392,12 @@
                     setClip(op);
                 else if (op == 'ren')
                     renameSel();
-                else
-                    toast('削除は、次の段階(②-2)で使えるようになります');
+                else if (op == 'del')
+                    deleteSel(false);
+                else if (op == 'restore')
+                    trashRestoreSel();
+                else if (op == 'purge')
+                    trashPurgeSel();
             };
 
             /* ドロワー: 見出しタップで格納/展開・長押しで入れ替え、お気に入りは長押しで並べ替え/メニュー */
@@ -3055,7 +3439,7 @@
                 },
                 long: storageMenu,
             });
-            $('dTrash').onclick = () => toast('ゴミ箱は、次の段階(②-2)で使えるようになります');
+            $('dTrash').onclick = () => openSrc(trashSrc()); /* ゴミ箱はタブで開きます(ドロワーは開いたまま) */
             $('dSet').onclick = openSettings;
 
             /* キーボード(PCで試すとき用): Esc=閉じる / Backspace=1つ上の階層へ */
@@ -3101,6 +3485,10 @@
             wire();
             renderAll();
             drTop();
+            autoPurge().then(() => {
+                if (isHome() || isTrash())
+                    renderMain();
+            });
         })();
     </script>
 </body>
