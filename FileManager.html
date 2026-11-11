@@ -709,6 +709,22 @@
             white-space: nowrap;
         }
 
+        /* アプリ版: 許可がないときの案内(ホームの一番上) */
+        .hperm {
+            margin: 8px 0 4px;
+            padding: 12px 14px;
+            border: 1px solid var(--acc);
+            border-radius: 12px;
+            background: var(--accSoft);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .hperm .btn {
+            margin-top: 8px;
+            padding: 8px 16px;
+        }
+
         .hnote {
             padding: 4px 2px;
             color: var(--tx2);
@@ -1425,7 +1441,17 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-12d';
+        const APP_VER = '2026-11-12e';
+        /* アプリ版(Android)の中で開いたときだけ、Kotlin側の窓口 window.TaruApp があります */
+        const APP = window.TaruApp || null;
+        const APPVER = APP ? (() => {
+            try {
+                return APP.appVersion();
+            }
+            catch {
+                return '';
+            }
+        })() : '';
         const KEY = 'taruFiler.v1';
         const $ = id => document.getElementById(id);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1439,7 +1465,14 @@
             catch { }
         };
         const SOON = 'この操作は、これからの段階で使えるようになります';
-        const APPONLY = 'Androidアプリ版で使えるようになります';
+        const APPONLY = APP ? 'これからの段階で使えるようになります' : 'Androidアプリ版で使えるようになります';
+        /* アプリ版で、まだ作っていない操作(押したらお知らせだけ出して止めます) */
+        function notYet(stage) {
+            if (!APP)
+                return false;
+            toast(`この操作は、${stage}で使えるようになります`);
+            return true;
+        }
 
         /* ===== アイコン(SVG)。見本: FileManager_icons.html。ストレージとファイルは A(色付き)、ボタンは B(線) ===== */
         const L = (inner, sw = 1.7) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
@@ -1641,6 +1674,60 @@
             /* ゴミ箱(タブで開くための特別な場所。ドロワーやホームのストレージ欄には出しません) */
             { id: 'trash', kind: 'trash', icon: SV.del, name: 'ゴミ箱', real: 'ゴミ箱', hidden: true },
         ];
+        /* ===== アプリ版: ストレージを本物にします =====
+           内部ストレージ・SDカードは、Kotlin側から場所と容量を受け取ります。
+           PCフォルダ・さくら・Googleドライブ(ダミー)は、作る段階まで出しません。
+           SDカードが入っていないときは、隠した「SDカード」を残しておきます(タブやお気に入りが消えないように) */
+        const capOf = v => v && v.total ? [v.total - v.free, v.total] : null;
+        function applyAppStorages() {
+            let vols = [];
+            try {
+                vols = JSON.parse(APP.storages()) || [];
+            }
+            catch { }
+            const list = [];
+            const iv = vols.find(v => v.id == 'int');
+            list.push({ id: 'int', kind: 'local', icon: SV.int, name: '内部ストレージ', real: iv ? iv.path : '/storage/emulated/0', cap: capOf(iv) });
+            for (const v of vols.filter(v => v.id != 'int'))
+                list.push({ id: v.id, kind: 'local', icon: SV.sd, name: v.name, real: v.path, cap: capOf(v) });
+            if (!list.some(x => x.id == 'sd'))
+                list.push({ id: 'sd', kind: 'local', icon: SV.sd, name: 'SDカード', real: '', cap: null, missing: true, hidden: true });
+            /* 前はあったのに、今は見つからないストレージ(USBメモリなど)も、隠して残します */
+            for (const o of STORAGES)
+                if (o.kind == 'local' && !list.some(x => x.id == o.id))
+                    list.push(Object.assign({}, o, { cap: null, missing: true, hidden: true }));
+            list.push(STORAGES.find(x => x.kind == 'trash'));
+            STORAGES.splice(0, STORAGES.length, ...list);
+        }
+        if (APP)
+            applyAppStorages();
+        /* Kotlin側に頼む(時間がかかる処理)。終わると Kotlin が window.__taruCb を呼びます */
+        const appCbs = new Map();
+        let appSeq = 0;
+        window.__taruCb = (id, s) => {
+            const cb = appCbs.get(id);
+            if (!cb)
+                return;
+            appCbs.delete(id);
+            let r;
+            try {
+                r = JSON.parse(s);
+            }
+            catch {
+                r = { ok: false, code: 'error' };
+            }
+            if (r.ok)
+                cb.res(r.v);
+            else
+                cb.rej({ code: r.code, msg: r.msg });
+        };
+        function appCall(method, args = {}) {
+            return new Promise((res, rej) => {
+                const id = ++appSeq;
+                appCbs.set(id, { res, rej });
+                APP.call(id, method, JSON.stringify(args));
+            });
+        }
         const stOf = id => STORAGES.find(s => s.id === id);
         /* Googleドライブのアカウントは「@」より前だけを表示します */
         const acName = st => st.account.split('@')[0];
@@ -1783,6 +1870,12 @@
         async function listDir0(st, p) {
             if (st.kind == 'pc')
                 return listPc(p);
+            if (APP && st.kind == 'local') {
+                if (st.missing)
+                    throw { code: 'nosd' };
+                const r = await appCall('list', { path: [st.real, ...p].join('/') });
+                return r.map(x => ({ name: x.name, dir: !!x.dir, size: x.dir ? null : x.size, mtime: x.mtime || null }));
+            }
             if (st.kind == 'server' || st.kind == 'gdrive')
                 await sleep(220); /* ネット越しの読み込みの雰囲気を出すため、少し待ちます */
             let n = st.demo;
@@ -2398,6 +2491,14 @@
                 h = 'PCのテスト用フォルダがまだ選ばれていません。<br>中身を消しても困らない、<b>テスト用のフォルダ</b>を選んでください。<br><button class="btn" data-act="pick">フォルダを選ぶ</button>';
             else if (code == 'pcperm')
                 h = `前回のフォルダ「${esc(pcRoot.name)}」に接続します。<br><button class="btn" data-act="perm">接続する</button><br><button class="btn" data-act="pick" style="background:var(--panel2);color:var(--tx)">別のフォルダを選ぶ</button>`;
+            else if (code == 'perm')
+                h = `ファイルを表示するには、「すべてのファイルへのアクセス」の許可が必要です。<br>ボタンを押すと設定の画面が開くので、「たるファイラー」をオンにして戻ってきてください。<br><button class="btn" data-act="appperm">許可する</button>`;
+            else if (code == 'restricted')
+                h = `このフォルダは、Androidの決まりで中を見ることができません。<br><button class="btn" data-act="up">1つ上のフォルダへ</button>`;
+            else if (code == 'nosd')
+                h = `${esc(st.name)}が見つかりません。<br>入れてから、もう一度開いてください。`;
+            else if (code == 'denied')
+                h = 'このフォルダは読めませんでした。';
             else if (code == 'notfound')
                 h = `このフォルダは見つかりません。<br><button class="btn" data-act="root">${ico(st)} ${esc(rootLabel(st))}の一番上へ</button>`;
             else
@@ -2425,7 +2526,8 @@
                 : `<div class="hnote">パス表示の ${sv('star')} をタップすると、今いる場所をお気に入りに登録できます。</div>`;
             const hf = S.homeFold || (S.homeFold = {});
             const sec = (k, title, body) => `<button class="hsech" data-hsec="${k}"><span class="ar">${sv(hf[k] ? 'right' : 'down')}</span>${title}</button>` + (hf[k] ? '' : body);
-            $('main').innerHTML = `<div class="home">` + sec('storage', 'ストレージ', `<div class="hgrp">${cards}</div>`)
+            const permNote = APP && !APP.hasPerm() ? `<div class="hperm"><div>ファイルを表示するには、「すべてのファイルへのアクセス」の許可が必要です。</div><button class="btn" data-act="appperm">許可する</button></div>` : '';
+            $('main').innerHTML = `<div class="home">` + permNote + sec('storage', 'ストレージ', `<div class="hgrp">${cards}</div>`)
                 + sec('fav', 'お気に入り', favs)
                 + `<div class="hsech" style="cursor:default"><span class="ar"></span>ゴミ箱</div><div class="hcards"><button class="hcard" data-htrash="1"><span class="ic">${sv('del')}</span><div class="tx"><div class="nm">ゴミ箱</div><div class="sub">0件・0 B</div></div></button></div></div>`;
             $('main').scrollTop = keepScroll ? sc : 0;
@@ -2470,6 +2572,8 @@
             }).join('') + '</div>';
         }
         async function openFile(x) {
+            if (notYet('①-3'))
+                return;
             const t = tab(), st = stOf(t.st);
             if (st.kind != 'pc') {
                 toast('ファイルを開くのは、' + APPONLY);
@@ -2549,6 +2653,8 @@
         /* ===== コピー・移動(貼り付けバー) ===== */
         let clip = null; /* { op: 'copy' | 'move', st, p, names } */
         function setClip(op) {
+            if (notYet('①-2'))
+                return;
             const list = selItems();
             if (!list.length)
                 return;
@@ -2998,6 +3104,8 @@
         }
         /* 削除(選択 → 削除 → ゴミ箱に移動 / 完全に削除) */
         async function deleteSel() {
+            if (notYet('①-2'))
+                return;
             const list = selItems(), t = tab(), st = stOf(t.st);
             if (!list.length)
                 return;
@@ -3053,6 +3161,8 @@
         }
         /* ゴミ箱のタブ: 元に戻す・完全に削除・空にする */
         async function trashRestoreSel(list = selItems()) {
+            if (notYet('①-2'))
+                return;
             if (!list.length)
                 return;
             let n = 0, skip = 0, failed = '';
@@ -3070,6 +3180,8 @@
             toast(failed ? `「${failed}」を元に戻せませんでした(${n}件は戻し済み)` : `${n}件を元に戻しました${skip ? `(${skip}件はスキップ)` : ''}`);
         }
         async function trashPurgeSel(list = selItems(), all = false) {
+            if (notYet('①-2'))
+                return;
             if (!list.length) {
                 toast('ゴミ箱は空です');
                 return;
@@ -3123,6 +3235,8 @@
             }
         }
         async function renameSel() {
+            if (notYet('①-2'))
+                return;
             const x = selItems()[0], t = tab(), st = stOf(t.st);
             if (!x)
                 return;
@@ -3353,6 +3467,8 @@
 
         /* 圧縮(選択 → その他 → zipに圧縮) */
         async function zipSel() {
+            if (notYet('①-3'))
+                return;
             const list = selItems(), t = tab(), st = stOf(t.st);
             if (!list.length)
                 return;
@@ -3414,6 +3530,8 @@
 
         /* 展開(zipをタップ、または 選択 → その他 → 展開) */
         async function unzipAsk(x) {
+            if (notYet('①-3'))
+                return;
             const base = x.name.replace(/\.zip$/i, '') || 'zip';
             const how = await askSheet(`「${x.name}」を展開しますか?`,
                 `<button class="sb" data-r="folder">${sv('folderB')}「${esc(base)}」フォルダに展開</button>`
@@ -3514,6 +3632,8 @@
         const isZip = x => !x.dir && /\.zip$/i.test(x.name);
 
         async function newFolder() {
+            if (notYet('①-2'))
+                return;
             const t = tab(), st = stOf(t.st);
             if (!t)
                 return;
@@ -3568,7 +3688,7 @@
         function opMore(x, y, up) {
             const list = selItems(), one = list.length == 1 ? list[0] : null;
             popMenu(x, y, [
-                { t: '共有', ic: 'share', act: () => toast('共有は、' + APPONLY) },
+                { t: '共有', ic: 'share', act: () => notYet('①-3') || toast('共有は、' + APPONLY) },
                 { t: 'ほかのアプリで開く', ic: 'openWith', dis: !one || one.dir, act: () => openFile(one) },
                 { t: 'お気に入りに追加', ic: 'starOn', dis: !one || !one.dir, act: () => { const t = tab(); addFav(t.st, [...t.p, one.name]); save(); renderDrawer(); toast('お気に入りに登録しました'); } },
                 { t: 'zipに圧縮', ic: 'zipAdd', act: zipSel },
@@ -3635,7 +3755,8 @@
         const appIc = () => `<img class="appic" src="${$('appIcon').href}" alt="">`;
         function openSettings() {
             closeDrawer();
-            dialog({ title: '設定', icon: 'gear', html: `設定の項目は、これから追加していきます。<br><br>${appIc()}たるファイラー(HTML版)<br>バージョン: ${APP_VER}`, ok: '閉じる', cancel: null });
+            const ver = APP ? `${appIc()}たるファイラー<br>アプリ版: ${esc(APPVER)}<br>HTML: ${APP_VER}` : `${appIc()}たるファイラー(HTML版)<br>バージョン: ${APP_VER}`;
+            dialog({ title: '設定', icon: 'gear', html: `設定の項目は、これから追加していきます。<br><br>${ver}`, ok: '閉じる', cancel: null });
         }
 
         /* ===== ドロワー ===== */
@@ -3680,7 +3801,7 @@
             const secs = { storage: secHtml('storage', 'ストレージ', stBody), fav: secHtml('fav', 'お気に入り', favBody) };
             $('secs').innerHTML = S.secOrder.map(k => secs[k]).join('');
             fillTrashCount($('dTrashSub')); /* ゴミ箱の件数と容量(開くたびに数え直します) */
-            $('ver').innerHTML = `${appIc()}<span>たるファイラー(HTML版) ${APP_VER}</span>`;
+            $('ver').innerHTML = APP ? `${appIc()}<span>たるファイラー アプリ版 ${esc(APPVER)}<br>HTML ${APP_VER}</span>` : `${appIc()}<span>たるファイラー(HTML版) ${APP_VER}</span>`;
             fitHead();
         }
         /* お気に入りの場所が入りきらないときは、頭の部分を「…/」で省略して、今いる側を残します */
@@ -3864,6 +3985,10 @@
                     permPc();
                 else if (a == 'root')
                     go(tab().st, []);
+                else if (a == 'appperm')
+                    APP && APP.openPermSettings();
+                else if (a == 'up')
+                    go(tab().st, tab().p.slice(0, -1));
             });
             main.addEventListener('scroll', () => {
                 if (!loading && tab())
@@ -3982,6 +4107,15 @@
             window.addEventListener('pagehide', save);
             document.addEventListener('visibilitychange', save);
         }
+
+        /* ===== アプリ版: アプリに戻ってきたとき(Kotlinが呼びます) =====
+           許可の状態とストレージ(SDカードの抜き差し)を確かめ直して、表示を描き直します */
+        window.taruResume = () => {
+            if (!APP || closeModal)
+                return;
+            applyAppStorages();
+            renderAll();
+        };
 
         /* ===== 起動 ===== */
         (async () => {
