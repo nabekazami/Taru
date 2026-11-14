@@ -469,6 +469,7 @@
         }
 
         .it .cbm {
+            z-index: 1;
             position: absolute;
             left: -5px;
             top: -4px;
@@ -518,6 +519,10 @@
 
         .list .it .ic {
             width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 26px;
         }
 
@@ -544,7 +549,103 @@
         }
 
         .grid .it .ic {
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 40px;
+        }
+
+        /* ===== サムネイル =====
+           写真・動画は、形(縦横の比)のまま枠(一覧 32px・アイコン表示 56px)に収まる大きさで出す。
+           大きさは読み込めたときに JS で決める(小さい画像も枠まで広げる)。
+           .thw は写真と同じ大きさの入れ物で、枠の真ん中に置く。動画の再生マークは .thw の右下(=絵の右下の角)に付ける */
+        .it .thw {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            line-height: 0;
+            pointer-events: none;
+        }
+
+        .it .th {
+            display: block;
+            max-width: 32px;
+            max-height: 32px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity .15s;
+        }
+
+        .grid .it .th {
+            max-width: 56px;
+            max-height: 56px;
+            border-radius: 6px;
+        }
+
+        .it .th.apk { /* APKのアイコンは枠いっぱい(もともと正方形) */
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            border-radius: 0;
+        }
+
+        .grid .it .th.apk {
+            width: 56px;
+            height: 56px;
+        }
+
+        .it .ic.thok .th {
+            opacity: 1;
+        }
+
+        .it .ic.thok > .sv {
+            visibility: hidden;
+        }
+
+        /* 動画の再生マーク(サムネイルが出たときだけ。絵の右下の角に重ねる)
+           横長の角丸(上下が半円)の中に ▶。横幅は①-1fの丸と同じで、高さは約3分の2 */
+        .it .pl {
+            position: absolute;
+            right: 1px;
+            bottom: 1px;
+            display: none;
+            width: 16px;
+            height: 11px;
+            padding: 1.5px 4px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, .62);
+            line-height: 0;
+        }
+
+        .grid .it .pl {
+            right: 3px;
+            bottom: 3px;
+            width: 24px;
+            height: 16px;
+            padding: 2px 6px;
+            border-radius: 8px;
+        }
+
+        .gal .it .pl {
+            right: 6px;
+            bottom: 6px;
+            width: 30px;
+            height: 20px;
+            padding: 3px 8px;
+            border-radius: 10px;
+        }
+
+        .it .pl svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .it .ic.thok .pl {
+            display: block;
         }
 
         .grid .it .tx {
@@ -564,10 +665,171 @@
             display: none;
         }
 
-        .grid .ck {
+        .grid .ck,
+        .gal .ck {
+            z-index: 3; /* サムネイルより上に */
             position: absolute;
             top: 6px;
             left: 6px;
+        }
+
+        /* 写真の上でも見えるように、選んでいない丸にも薄い暗い色を敷く */
+        .grid .it:not(.sel) .ck,
+        .gal .it:not(.sel) .ck {
+            border-color: #fff;
+            background: rgba(0, 0, 0, .32);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, .25);
+        }
+
+        /* ===== ギャラリー表示 =====
+           画像・動画(.media)は名前を出さず、正方形のタイルいっぱいに切り取って並べる(角丸10px・すき間4px)。
+           フォルダやほかのファイルは、種類の絵と名前を小さく出す。列の数は 3列 / 4列 / 自動(1枚110px以上) */
+        .gal {
+            display: grid;
+            gap: 4px;
+            padding: 4px;
+        }
+
+        .gal.gc3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .gal.gc4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .gal.gcauto {
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        }
+
+        .gal .it {
+            position: relative;
+            aspect-ratio: 1;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+            padding: 6px;
+            overflow: hidden;
+            border-radius: 10px; /* タイルの角を丸める */
+            background: var(--panel);
+            text-align: center;
+        }
+
+        .gal .it .ic {
+            font-size: 40px;
+        }
+
+        .gal .it .tx {
+            width: 100%;
+        }
+
+        .gal .it .nm {
+            font-size: 11.5px;
+        }
+
+        .gal .it .mt {
+            display: none;
+        }
+
+        .gal .it.media {
+            padding: 0;
+        }
+
+        .gal .it.media .ic {
+            position: absolute;
+            inset: 0;
+        }
+
+        .gal .it.media .ic > .sv {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .gal .it.media .tx {
+            display: none;
+        }
+
+        .gal .it .thw {
+            inset: 0;
+            left: 0;
+            top: 0;
+            transform: none;
+        }
+
+        .gal .it .th {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            object-fit: cover;
+            border-radius: 0;
+        }
+
+        .gal .it .th.apk {
+            width: 100%;
+            height: 100%;
+            padding: 18%;
+            object-fit: contain;
+        }
+
+        .gal .it .cbm {
+            left: auto;
+            right: 6px;
+            top: 6px;
+        }
+
+        /* 選んだタイルは、青い枠と薄い青を重ねる */
+        .gal .it.sel::after,
+        .gal .it.clip::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            border: 2px solid var(--acc);
+            border-radius: inherit;
+            background: color-mix(in srgb, var(--acc) 22%, transparent);
+            pointer-events: none;
+        }
+
+        .gal .it.clip:not(.sel)::after {
+            border-style: dashed;
+        }
+
+        /* ===== スクロールのつまみ(長いフォルダでスクロールしたときだけ、右端に出る) ===== */
+        #fs {
+            position: fixed;
+            z-index: 30;
+            right: calc(2px + var(--cutR));
+            top: 0;
+            display: grid;
+            place-items: center;
+            width: 28px;
+            height: 48px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--panel);
+            color: var(--tx2);
+            box-shadow: var(--shadow);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .25s, visibility .25s;
+            touch-action: none;
+        }
+
+        #fs.on {
+            opacity: .95;
+            visibility: visible;
+        }
+
+        #fs svg {
+            width: 16px;
+            height: 28px;
+        }
+
+        #main.fsing {
+            scrollbar-width: none; /* つまみを出している間は、細いスクロールバーを隠す */
         }
 
         .msg {
@@ -822,51 +1084,120 @@
         }
 
         /* 進み具合(時間がかかる操作のときだけ表示) */
+        /* ===== 進み具合のウインドウ(コピー・移動・削除・ゴミ箱・zip など) =====
+           0.3秒以上かかるときだけ、画面の真ん中に出す。出ている間は、後ろの画面は触れない */
         #prog {
             position: fixed;
-            left: 50%;
-            bottom: calc(140px + env(safe-area-inset-bottom)); /* お知らせ(下のほう)と重ならない高さ */
+            inset: 0;
             z-index: 45;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            width: min(92vw, 380px);
-            padding: 12px 12px 12px 16px;
+            display: grid;
+            place-items: center;
+            padding: 16px;
+            background: rgba(0, 0, 0, .45);
+        }
+
+        #prog[hidden] {
+            display: none;
+        }
+
+        #prog .pbox {
+            width: min(100%, 360px);
+            padding: 22px 22px 10px;
             border: 1px solid var(--line);
-            border-radius: 12px;
+            border-radius: 18px;
             background: var(--panel);
             box-shadow: var(--shadow);
-            transform: translateX(-50%);
-            font-size: 13px;
         }
 
-        #prog .pt {
+        #progT {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        /* 処理中のファイルの名前(左)と量(右) */
+        #prog .pn {
+            display: flex;
+            gap: 10px;
+            min-height: 17px;
+            margin: 8px 0 14px;
+            color: var(--tx2);
+            font-size: 12px;
+        }
+
+        #progN {
             flex: 1;
             min-width: 0;
-        }
-
-        #prog .pn {
             overflow: hidden;
-            color: var(--tx2);
-            font-size: 11.5px;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        #prog .spin {
+        #progS {
             flex: none;
-            width: 18px;
-            height: 18px;
-            border: 2.5px solid var(--line);
-            border-top-color: var(--acc);
-            border-radius: 50%;
-            animation: spin .8s linear infinite;
+            font-variant-numeric: tabular-nums;
         }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
+        #prog .pbar {
+            position: relative;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--line);
+            overflow: hidden;
+        }
+
+        #progI {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-radius: 3px;
+            background: var(--acc);
+            transition: width .2s;
+        }
+
+        /* 進み具合が分からないときは、棒が左右に流れる */
+        #prog .pbar.unk #progI {
+            width: 35%;
+            transition: none;
+            animation: pflow 1.1s ease-in-out infinite;
+        }
+
+        @keyframes pflow {
+            from {
+                left: -35%;
             }
+
+            to {
+                left: 100%;
+            }
+        }
+
+        /* 左に「5 / 7件」、右に「55%」 */
+        #prog .pc {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            color: var(--tx2);
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #prog .pbt {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            padding-top: 4px;
+        }
+
+        #progX {
+            min-width: 120px;
+            min-height: 44px;
+            padding: 8px 20px;
+            border-radius: 10px;
+            color: var(--tx);
+            font-size: 15px;
+            font-weight: 700;
         }
 
         /* 同じ名前があったときのウインドウ */
@@ -1219,6 +1550,30 @@
             text-align: center;
         }
 
+        /* メニューの中の横並びのボタン(ギャラリー表示の列の数) */
+        .pmrow {
+            display: flex;
+            gap: 6px;
+            padding: 2px 12px 8px 46px;
+        }
+
+        .pmrow button {
+            flex: 1;
+            justify-content: center;
+            padding: 7px 4px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            font-size: 12.5px;
+            text-align: center;
+        }
+
+        .pmrow button.on {
+            border-color: var(--acc);
+            background: var(--accSoft);
+            color: var(--acc);
+            font-weight: 700;
+        }
+
         .pm hr {
             margin: 4px 0;
             border: 0;
@@ -1306,6 +1661,12 @@
             color: var(--tx2);
             font-size: 11.5px;
             text-align: center;
+        }
+
+        /* 「完全に削除すると元に戻せません」は、ゴミ箱を空にするボタンと同じ赤い文字 */
+        .sheet .note.warn {
+            color: var(--danger);
+            font-weight: 600;
         }
 
         .dlg {
@@ -1545,12 +1906,13 @@
     <div id="pop" hidden></div>
     <div id="modal" hidden></div>
     <div id="prog" hidden>
-        <span class="spin"></span>
-        <div class="pt">
+        <div class="pbox" role="dialog" aria-live="polite">
             <div id="progT"></div>
-            <div class="pn" id="progN"></div>
+            <div class="pn"><span id="progN"></span><span id="progS"></span></div>
+            <div class="pbar" id="progBar"><i id="progI"></i></div>
+            <div class="pc"><span id="progC"></span><span id="progP"></span></div>
+            <div class="pbt"><button id="progX">キャンセル</button></div>
         </div>
-        <button class="tb" id="progX">中止</button>
     </div>
     <div id="toast"></div>
 
@@ -1563,7 +1925,7 @@
            ・HTML版では、内部ストレージ・SDカード・さくら・Googleドライブはダミーのデータです。
              「PCフォルダ」だけは、PCのChromeで選んだ本物のフォルダを表示します(HTML版のテスト用)。
            ===================================================================== */
-        const APP_VER = '2026-11-13a';
+        const APP_VER = '2026-11-14e';
         /* アプリ版(Android)の中で開いたときだけ、Kotlin側の窓口 window.TaruApp があります */
         const APP = window.TaruApp || null;
         const APPVER = APP ? (() => {
@@ -1886,10 +2248,11 @@
                 fold: { storage: true, fav: false },
                 homeFold: { storage: false, fav: false }, /* ホームの格納状態(ドロワーとは別) */
                 view: 'list',
-                sort: { k: 'name', asc: true },
+                sorts: {},     /* フォルダごとの並べ替え { "ストレージ:パス": { k, asc, at } }。覚えていないフォルダは「名前・昇順」 */
                 hidden: false,
                 theme: 'auto', /* 表示の色: auto(端末に合わせる) / light / dark */
                 icon: 'b',     /* アプリ内のアイコン: a / b / c */
+                thumbs: true,  /* サムネイル(画像・動画・APK)を表示する */
                 lpFb: 'vib',   /* 長押しのフィードバック: vib(振動) / none(なし)。あとで音を足せるように文字で持ちます */
             };
         }
@@ -1918,6 +2281,31 @@
         const tab = () => S.tabs[S.cur];
         const isHome = () => !S.tabs.length;
         const isTrash = () => !isHome() && tab().st == 'trash';
+
+        /* ===== 並べ替え(フォルダごとに覚えます) =====
+           ︙ →「並べ替え…」で変えると、今いるフォルダの並べ替えとして覚えます(どのタブから開いても同じ)。
+           覚えていないフォルダは「名前・昇順」。下のフォルダには引き継ぎません。ゴミ箱は1つのフォルダとして覚えます。
+           500フォルダを超えたら、長く開いていないものから忘れます */
+        const SORT_DEF = { k: 'name', asc: true }, SORT_MAX = 500;
+        if (!S.sorts || typeof S.sorts != 'object')
+            S.sorts = {};
+        delete S.sort; /* 以前の「全部のフォルダで共通」の並べ替えは使いません */
+        const sortKey = t => t.st + ':' + (t.st == 'trash' ? '' : t.p.join('/'));
+        function curSort() {
+            const e = tab() && S.sorts[sortKey(tab())];
+            if (e)
+                e.at = Date.now(); /* 開いた日時(忘れる順番に使います) */
+            return e || SORT_DEF;
+        }
+        function setSort(k, asc) {
+            S.sorts[sortKey(tab())] = { k, asc, at: Date.now() };
+            const keys = Object.keys(S.sorts);
+            if (keys.length > SORT_MAX)
+                keys.sort((a, b) => (S.sorts[a].at || 0) - (S.sorts[b].at || 0)).slice(0, keys.length - SORT_MAX).forEach(x => delete S.sorts[x]);
+            save();
+            draw();
+            updateSel();
+        }
         const samePath = (a, b) => a.length == b.length && a.every((x, i) => x === b[i]);
         const findFav = (st, p) => S.favs.find(f => f.st == st && samePath(f.p, p));
         /* タブの名前: 開いたお気に入りの名前(またはストレージ名)で固定。Googleドライブは「Googleドライブ」で固定
@@ -1935,9 +2323,13 @@
                 t.name = stOf(t.st).name;
             }
         });
+        /* タブの名前は、今いるフォルダの名前(一番上ではストレージの名前。Googleドライブは「Googleドライブ」、ゴミ箱は「ゴミ箱」)。
+           どのお気に入りから開いたか(t.fav)は別に覚えているので、ドロワーのお気に入りを押すと登録した場所に戻ります */
         const tabName = t => {
             const st = stOf(t.st);
-            return st.kind == 'gdrive' ? st.name : (t.name || st.name);
+            if (st.kind != 'trash' && t.p.length)
+                return t.p[t.p.length - 1];
+            return st.kind == 'gdrive' ? 'Googleドライブ' : st.name;
         };
 
         /* ===== 小さな保存箱(PCフォルダの接続情報を覚えておくため) ===== */
@@ -2027,6 +2419,9 @@
         /* ===== ファイル操作の部品(アプリ版ではここを Kotlin 側の処理に差し替えます) =====
            PCフォルダ: 本物のファイルを操作します / ダミー: ブラウザの中だけで変更します(再読み込みで元に戻ります) */
         const isPc = st => st.kind == 'pc';
+        /* アプリ版の内部ストレージ・SDカードは、Kotlin(FileOps.kt)で本物のファイルを操作します */
+        const isReal = st => !!APP && st.kind == 'local';
+        const ap = (st, p, name) => [st.real, ...p, ...(name != null ? [name] : [])].join('/');
         function demoDir(st, p) {
             let n = st.demo;
             for (const s of p) {
@@ -2038,6 +2433,10 @@
         }
         /* 名前があるか(あれば {dir}、なければ null) */
         async function fsGet(st, p, name) {
+            if (isReal(st)) {
+                const v = await appCall('stat', { path: ap(st, p, name) });
+                return v ? { dir: !!v.dir, size: v.size || 0 } : null;
+            }
             if (!isPc(st)) {
                 const n = demoDir(st, p).c[name];
                 return n ? { dir: !!n.dir } : null;
@@ -2056,6 +2455,8 @@
             return null;
         }
         async function fsList(st, p) {
+            if (isReal(st))
+                return (await appCall('list', { path: ap(st, p) })).map(x => ({ name: x.name, dir: !!x.dir }));
             if (!isPc(st))
                 return Object.entries(demoDir(st, p).c).map(([name, v]) => ({ name, dir: !!v.dir }));
             const a = [];
@@ -2064,6 +2465,10 @@
             return a;
         }
         async function fsMkdir(st, p, name) {
+            if (isReal(st)) {
+                await appCall('mkdir', { path: ap(st, p, name) });
+                return;
+            }
             if (!isPc(st)) {
                 demoDir(st, p).c[name] = { dir: true, mtime: Date.now(), c: {} };
                 return;
@@ -2071,13 +2476,34 @@
             await (await pcDir(p)).getDirectoryHandle(name, { create: true });
         }
         async function fsRemove(st, p, name) {
+            if (isReal(st)) {
+                await appCall('remove', { path: ap(st, p, name) });
+                return;
+            }
             if (!isPc(st)) {
                 delete demoDir(st, p).c[name];
                 return;
             }
             await (await pcDir(p)).removeEntry(name, { recursive: true });
         }
-        async function fsCopyFile(src, sp, name, dst, dp, dn) {
+        async function fsCopyFile(src, sp, name, dst, dp, dn, j) {
+            if (isReal(src) && isReal(dst)) {
+                try {
+                    const n = await appCall('copy', { src: ap(src, sp, name), dst: ap(dst, dp, dn), job: j ? j.id : 0 });
+                    if (j) {
+                        j.bDone += n || 0;
+                        j.bCur = 0;
+                    }
+                }
+                catch (e) {
+                    if (e && e.code == 'canceled' && j) {
+                        j.cancel = true; /* 中止のときは、作りかけのファイルは Kotlin 側で消してあります */
+                        return;
+                    }
+                    throw e;
+                }
+                return;
+            }
             if (!isPc(src)) {
                 const n = demoDir(src, sp).c[name];
                 demoDir(dst, dp).c[dn] = { dir: false, size: n.size, mtime: n.mtime };
@@ -2091,6 +2517,8 @@
         }
         /* 同じストレージの中で、中身をコピーせずに移動(名前変更)します。できなければ false */
         async function fsMoveFast(st, sp, name, dp, dn) {
+            if (isReal(st))
+                return !!(await appCall('move', { src: ap(st, sp, name), dst: ap(st, dp, dn) }));
             if (!isPc(st)) {
                 const s = demoDir(st, sp), d = demoDir(st, dp), n = s.c[name];
                 delete s.c[name];
@@ -2357,6 +2785,7 @@
         function popMenu(x, y, list, up = false) {
             const pop = $('pop');
             pop.innerHTML = '<div class="pm">' + list.map((m, i) => m == '-' ? '<hr>'
+                : m.row ? `<div class="pmrow">${m.row.map((b, j) => `<button data-i="${i}" data-j="${j}" class="${b.on ? 'on' : ''}">${esc(b.t)}</button>`).join('')}</div>`
                 : `<button data-i="${i}"${m.dis ? ' disabled' : ''}><span class="pc">${m.chk ? sv('check') : (m.ic ? sv(m.ic) : '')}</span>${esc(m.t)}</button>`).join('') + '</div>';
             pop.hidden = false;
             const pm = pop.firstChild, r = pm.getBoundingClientRect();
@@ -2368,7 +2797,7 @@
                 if (e.target === pop || b)
                     pop.hidden = true;
                 if (b)
-                    list[+b.dataset.i].act();
+                    b.dataset.j != null ? list[+b.dataset.i].row[+b.dataset.j].act() : list[+b.dataset.i].act();
             };
         }
 
@@ -2439,7 +2868,10 @@
         }
         /* タブを増やす(元のタブの名前などを引き継ぎます) */
         function addTab(t, at = S.tabs.length) {
-            S.tabs.splice(at, 0, { st: t.st, p: [...t.p], fav: t.fav, from: t.from, name: t.name });
+            /* 表示の仕方: 「このタブを複製」は元のタブから引き継ぎます。
+               ドロワー・ホームから開く新しいタブは、最後に使った「一覧表示」か「アイコン表示」(S.view)で開きます */
+            const view = t.view || (S.view == 'grid' ? 'grid' : 'list');
+            S.tabs.splice(at, 0, { st: t.st, p: [...t.p], fav: t.fav, from: t.from, name: t.name, view });
             if (at <= S.cur)
                 S.cur++;
             switchTab(at);
@@ -2686,7 +3118,7 @@
                 const q = query.toLowerCase();
                 a = a.filter(x => nm(x).toLowerCase().includes(q));
             }
-            const { k, asc } = S.sort, m = asc ? 1 : -1;
+            const { k, asc } = curSort(), m = asc ? 1 : -1;
             const by = (x, y) => k == 'date' ? (x.mtime || 0) - (y.mtime || 0)
                 : k == 'size' ? (x.size || 0) - (y.size || 0)
                     : k == 'type' ? COL.compare(ext(nm(x)), ext(nm(y)))
@@ -2702,20 +3134,85 @@
         }
         function draw() {
             const main = $('main');
+            fsHide(); /* フォルダを開き直したら、スクロールのつまみはいったん隠す */
             shown = visible();
             if (!shown.length) {
                 main.innerHTML = `<div class="msg">${query ? '一致するものはありません' : isTrash() ? 'ゴミ箱は空です' : 'このフォルダは空です'}</div>`;
                 return;
             }
-            const t = tab(), here = clip && clip.st == t.st && samePath(clip.p, t.p);
-            main.innerHTML = `<div class="${S.view}${selMode ? ' selmode' : ''}">` + shown.map(x => {
+            const t = tab(), here = clip && clip.st == t.st && samePath(clip.p, t.p), dst = stOf(t.st);
+            const view = viewOf(), gal = view == 'gal';
+            main.innerHTML = `<div class="${view}${gal ? ' gc' + (S.gcols || '4') : ''}${selMode ? ' selmode' : ''}">` + shown.map(x => {
                 const s = sel.has(x.name), cm = here && clip.names.includes(x.name);
                 const mark = cm ? `<span class="cbm">${sv(clip.op == 'copy' ? 'copy' : 'move')}</span>` : '';
                 const lb = x.label || x.name;
-                return `<div class="it${lb.startsWith('.') ? ' hid' : ''}${s ? ' sel' : ''}${cm ? ' clip' + (clip.op == 'move' ? ' cmove' : '') : ''}" data-n="${esc(x.name)}">`
-                    + `<span class="ck">${s ? sv('check') : ''}</span><span class="ic">${x.dir ? sv('folder') : ftype(lb)[0]}${mark}</span>`
+                const th = thumbTag(x, dst, t.p, gal);
+                return `<div class="it${lb.startsWith('.') ? ' hid' : ''}${s ? ' sel' : ''}${cm ? ' clip' + (clip.op == 'move' ? ' cmove' : '') : ''}${th ? ' media' : ''}" data-n="${esc(x.name)}">`
+                    + `<span class="ck">${s ? sv('check') : ''}</span><span class="ic">${x.dir ? sv('folder') : ftype(lb)[0]}${th}${mark}</span>`
                     + `<div class="tx"><div class="nm">${esc(lb)}</div><div class="mt">${meta(x)}</div></div></div>`;
             }).join('') + '</div>';
+            thumbsStart();
+        }
+
+        /* ===== サムネイル(画像・動画・APK) =====
+           種類の絵の上に <img class="th"> を重ねておき、読み込めたら .ic に thok を付けて入れ替えます。
+           読み込むのは、画面に見えている分(とその少し先)だけ。
+           アプリ版: Kotlin(Thumbs.kt)が https://appassets.androidplatform.net/thumb?p=... で小さい画像を返します。
+           HTML版: PCフォルダの画像だけ(ファイルをそのまま読みます)。ダミーのストレージは種類の絵のまま */
+        const TH_IMG = /^(jpe?g|png|gif|webp|bmp|heic|heif|avif)$/, TH_VID = /^(mp4|mov|mkv|webm|3gp|avi|m4v)$/;
+        const PLAY = `<span class="pl"><svg viewBox="0 0 24 24"><path d="M8.5 5.5v13l10.5-6.5z" fill="#fff"/></svg></span>`; /* 三角の重心が真ん中に来る形 */
+        function thumbTag(x, st, p, big) {
+            if (x.dir || x.tr || S.thumbs === false || !st)
+                return '';
+            const e = ext(x.name);
+            const k = TH_IMG.test(e) ? 'img' : TH_VID.test(e) ? 'vid' : e == 'apk' ? 'apk' : '';
+            if (!k)
+                return '';
+            if (APP && st.kind == 'local' && !st.missing) {
+                const url = 'https://appassets.androidplatform.net/thumb?s=' + (big ? 512 : 256) + '&m=' + (x.mtime || 0) + '&p=' + encodeURIComponent([st.real, ...p, x.name].join('/'));
+                return `<span class="thw"><img class="th ${k}" alt="" data-src="${esc(url)}">${k == 'vid' ? PLAY : ''}</span>`;
+            }
+            if (st.kind == 'pc' && k == 'img' && !/^hei[cf]$/.test(e) && (x.size || 0) < 40e6)
+                return `<span class="thw"><img class="th img" alt="" data-pc="${esc(x.name)}"></span>`;
+            return '';
+        }
+        let thObs = null, thUrls = [];
+        function thumbsStart() {
+            if (thObs)
+                thObs.disconnect();
+            thObs = null;
+            thUrls.forEach(u => URL.revokeObjectURL(u));
+            thUrls = [];
+            const imgs = $('main').querySelectorAll('img.th');
+            if (!imgs.length)
+                return;
+            const p = tab().p.slice();
+            /* 見張るのは枠(.ic)。読み込む前の画像は大きさが0なので */
+            const obs = thObs = new IntersectionObserver(es => {
+                for (const e of es)
+                    if (e.isIntersecting) {
+                        obs.unobserve(e.target);
+                        const img = e.target.querySelector('img.th');
+                        if (img)
+                            thLoad(img, p);
+                    }
+            }, { rootMargin: '300px 0px' });
+            imgs.forEach(i => obs.observe(i.closest('.ic')));
+        }
+        async function thLoad(img, p) {
+            if (img.dataset.src) {
+                img.src = img.dataset.src;
+                return;
+            }
+            try {
+                const f = await (await (await pcDir(p)).getFileHandle(img.dataset.pc)).getFile();
+                if (!img.isConnected)
+                    return;
+                const u = URL.createObjectURL(f);
+                thUrls.push(u);
+                img.src = u;
+            }
+            catch { }
         }
         async function openFile(x) {
             if (notYet('①-3'))
@@ -2799,10 +3296,10 @@
         /* ===== コピー・移動(貼り付けバー) ===== */
         let clip = null; /* { op: 'copy' | 'move', st, p, names } */
         function setClip(op) {
-            if (notYet('①-2'))
-                return;
             const list = selItems();
             if (!list.length)
+                return;
+            if (op == 'move' && blockProtected(list, '移動'))
                 return;
             const t = tab();
             clip = { op, st: t.st, p: [...t.p], names: list.map(x => x.name) };
@@ -2820,13 +3317,16 @@
         }
 
         /* 進み具合(0.3秒以上かかるときだけ表示します) */
-        let job = null;
+        let job = null, jobSeq = 0;
         function jobStart(title) {
-            job = { cancel: false, n: 0, cur: '', title, policy: null };
+            /* bTotal / bDone / bCur: 量の進み具合(全体 / 終わった分 / コピー中のファイルの分) */
+            job = { id: ++jobSeq, cancel: false, n: 0, cur: '', title, policy: null, bTotal: 0, bDone: 0, bCur: 0 };
             const j = job;
             j.t = setTimeout(() => {
-                if (job === j)
+                if (job === j) {
+                    $('toast').classList.remove('show'); /* 前のお知らせが進み具合に重ならないように */
                     $('prog').hidden = false;
+                }
             }, 300);
             progDraw();
             return j;
@@ -2834,13 +3334,39 @@
         function progDraw() {
             if (!job)
                 return;
-            /* 件数は、選んだもの(フォルダは中身ごとで1件)の数で数えます */
-            $('progT').textContent = job.total ? `${job.title}… ${job.done} / ${job.total}件` : `${job.title}…`;
+            $('progT').textContent = `${job.title}…`;
             $('progN').textContent = job.cur;
+            /* 件数は、選んだもの(フォルダは中身ごとで1件)の数で数えます */
+            $('progC').textContent = job.total ? `${job.done} / ${job.total}件` : '';
+            /* 割合: 量が分かるとき(コピー・移動)は量で、分からないときは件数で */
+            let k = null;
+            if (job.bTotal) {
+                const now = Math.min(job.bTotal, job.bDone + job.bCur);
+                $('progS').textContent = `${fmtSize(now)} / ${fmtSize(job.bTotal)}`;
+                k = now / job.bTotal;
+            }
+            else {
+                $('progS').textContent = '';
+                if (job.total)
+                    k = job.done / job.total;
+            }
+            $('progBar').classList.toggle('unk', k == null);
+            $('progI').style.width = k == null ? '' : (k * 100).toFixed(1) + '%';
+            $('progP').textContent = k == null ? '' : Math.floor(k * 100) + '%';
         }
+        /* コピー中のファイルの進み具合(Kotlin が約0.2秒ごとに呼びます) */
+        window.__taruProg = (id, bytes) => {
+            if (job && job.id == id) {
+                job.bCur = bytes;
+                progDraw();
+            }
+        };
         function jobEnd() {
-            if (job)
+            if (job) {
                 clearTimeout(job.t);
+                if (APP && APP.endJob)
+                    APP.endJob(job.id);
+            }
             job = null;
             $('prog').hidden = true;
         }
@@ -2916,12 +3442,17 @@
                     }
                     await putEntry(j, src, [...sp, name], ch.name, dst, [...dp, dn], cn, move, m);
                 }
+                /* フォルダの更新日時もコピー元にそろえます(アプリ版) */
+                if (!j.cancel && isReal(src) && isReal(dst))
+                    await appCall('copyTime', { src: ap(src, sp, name), dst: ap(dst, dp, dn) }).catch(() => 0);
                 /* 移動のときは、中身が全部移ったフォルダだけ消します(スキップしたものがあれば残します) */
                 if (move && !j.cancel && !(await fsList(src, [...sp, name])).length)
                     await fsRemove(src, sp, name);
             }
             else {
-                await fsCopyFile(src, sp, name, dst, dp, dn);
+                await fsCopyFile(src, sp, name, dst, dp, dn, j);
+                if (j.cancel)
+                    return;
                 if (move)
                     await fsRemove(src, sp, name);
                 j.n++;
@@ -2937,12 +3468,21 @@
                     o.p = [...to, ...o.p.slice(from.length)];
                     o.st = toSt;
                 }
+            /* フォルダごとの並べ替えも、一緒に引っ越します */
+            for (const key of Object.keys(S.sorts)) {
+                const i = key.indexOf(':'), st = key.slice(0, i), p = key.slice(i + 1).split('/').filter(Boolean);
+                if (st != 'trash' && under(st, p)) {
+                    const nk = toSt + ':' + [...to, ...p.slice(from.length)].join('/');
+                    S.sorts[nk] = S.sorts[key];
+                    delete S.sorts[key];
+                }
+            }
             save();
         }
 
         async function paste() {
             const c = clip, t = tab();
-            if (!c || !t)
+            if (!c || !t || job) /* 処理中に「ここにコピー」をもう一度押しても、何もしません */
                 return;
             const src = stOf(c.st), dst = stOf(t.st);
             if (dst.kind == 'trash') {
@@ -2970,12 +3510,39 @@
             j.total = c.names.length;
             j.done = 0;
             progDraw();
+            /* アプリ版: 量を先に数えて、空き容量が足りるか調べます(同じストレージの中の移動は、場所を変えるだけなので調べません) */
+            let sizes = null;
+            if (isReal(src) && isReal(dst)) {
+                try {
+                    sizes = await appCall('sizes', { paths: c.names.map(n => ap(src, c.p, n)) });
+                    j.bTotal = sizes.reduce((a, b) => a + b, 0);
+                    progDraw();
+                    if (!move || c.st != t.st) {
+                        const free = await appCall('free', { path: ap(dst, t.p) });
+                        if (j.bTotal > free) {
+                            jobEnd();
+                            dialog({ title: '空き容量が足りません', icon: 'info', html: `${move ? '移動' : 'コピー'}に必要な容量: ${fmtSize(j.bTotal)}<br>${esc(dst.name)}の空き容量: ${fmtSize(free)}<br><br>空きを増やしてから、もう一度試してください。`, ok: '閉じる', cancel: null });
+                            return;
+                        }
+                    }
+                }
+                catch (e) {
+                    console.error(e);
+                    sizes = null;
+                    j.bTotal = 0;
+                }
+            }
             const done = [];
-            let skip = 0, failed = false;
+            let skip = 0, failed = false, why = '', bBase = 0;
             try {
-                for (const name of c.names) {
+                for (const [k, name] of c.names.entries()) {
                     if (j.cancel)
                         break;
+                    if (sizes) { /* 1つ終わるごとに、量を数え直します(スキップ・上書きしたものも含めて進めます) */
+                        j.bDone = bBase;
+                        j.bCur = 0;
+                        bBase += sizes[k] || 0;
+                    }
                     const info = await fsGet(src, c.p, name);
                     if (!info)
                         continue;
@@ -3005,12 +3572,17 @@
                         break;
                     done.push([name, dn]);
                     j.done++;
+                    if (sizes) {
+                        j.bDone = bBase;
+                        j.bCur = 0;
+                    }
                     progDraw();
                 }
             }
             catch (e) {
                 console.error(e);
                 failed = true;
+                why = errWhy(e);
             }
             const n = j.done, canceled = j.cancel, cur = j.cur;
             jobEnd();
@@ -3022,9 +3594,9 @@
             }
             const verb = move ? '移動' : 'コピー', sk = skip ? `(${skip}件はスキップ)` : '';
             if (failed)
-                toast(`「${cur}」を${verb}できませんでした(${n}件は${verb}済み)`);
+                toast(`「${cur}」を${verb}できませんでした${why}(${n}件は${verb}済み)`);
             else if (canceled)
-                toast(`中止しました(${n}件は${verb}済み)`);
+                toast(`キャンセルしました(${n}件は${verb}済み)`);
             else if (!n && skip)
                 toast(`すべてスキップしました(${skip}件)`);
             else
@@ -3032,6 +3604,27 @@
             if (!move)
                 clip = null;
             renderAll();
+        }
+
+        /* 失敗の理由(アプリ版の Kotlin から返ってくる code)を、お知らせに添える言葉にします */
+        function errWhy(e) {
+            const c = e && e.code;
+            return c == 'nospace' ? '(空き容量が足りません)'
+                : c == 'protected' ? '(このフォルダは変更できません)'
+                    : c == 'restricted' ? '(Androidの決まりで触れない場所です)'
+                        : c == 'denied' ? '(書き込みが許可されていません)'
+                            : c == 'perm' ? '(ファイルへのアクセスが許可されていません)' : '';
+        }
+        /* 消す・移動する・名前を変えることができないフォルダ(ストレージの一番上の「Android」フォルダ)。
+           ほかのアプリのデータが入っていて、動かすと壊れることがあるため */
+        const isProtected = (st, p, x) => (st.kind == 'local' || st.kind == 'pc') && !p.length && x.dir && x.name.toLowerCase() == 'android';
+        function blockProtected(list, verb) {
+            const t = tab(), st = stOf(t.st);
+            const x = list.find(x => isProtected(st, t.p, x));
+            if (!x)
+                return false;
+            dialog({ title: `${verb}できません`, icon: 'info', html: `「${esc(x.name)}」フォルダには、ほかのアプリのデータが入っています。<br>動かしたり消したりするとアプリが壊れることがあるため、削除・移動・名前の変更はできません。`, ok: '閉じる', cancel: null });
+            return true;
         }
 
         /* ===== 削除とゴミ箱 =====
@@ -3050,6 +3643,17 @@
             }
         }
         async function tIdx(st) {
+            if (isReal(st)) {
+                if (st.missing)
+                    return [];
+                try {
+                    const t = await appCall('readText', { path: ap(st, [TRASH], 'index.json') });
+                    return (t && JSON.parse(t)) || [];
+                }
+                catch {
+                    return [];
+                }
+            }
             if (!isPc(st))
                 return st._tidx || (st._tidx = []);
             try {
@@ -3061,6 +3665,10 @@
             }
         }
         async function tIdxSave(st, a) {
+            if (isReal(st)) {
+                await appCall('writeText', { path: ap(st, [TRASH], 'index.json'), text: JSON.stringify(a, null, 1) });
+                return;
+            }
             if (!isPc(st)) {
                 st._tidx = a;
                 return;
@@ -3221,7 +3829,7 @@
             const tr = hasTrash(st);
             return askSheet(`${label}を削除しますか?`,
                 (tr ? `<button class="sb" data-r="trash">${sv('del')}ゴミ箱に移動</button>` : `<div class="why">${esc(st.name)}にはゴミ箱がないため、完全に削除します。</div>`)
-                + `<button class="sb danger" data-r="perm">完全に削除</button><div class="note">完全に削除すると元に戻せません</div>`);
+                + `<button class="sb danger" data-r="perm">完全に削除</button><div class="note warn">完全に削除すると元に戻せません</div>`);
         }
         /* 下から出てくる画面(見出し・✕・中身)。押したボタンの data-r、閉じたら null */
         function askSheet(title, body) {
@@ -3250,10 +3858,10 @@
         }
         /* 削除(選択 → 削除 → ゴミ箱に移動 / 完全に削除) */
         async function deleteSel() {
-            if (notYet('①-2'))
-                return;
             const list = selItems(), t = tab(), st = stOf(t.st);
             if (!list.length)
+                return;
+            if (blockProtected(list, '削除'))
                 return;
             const label = list.length == 1 ? `「${list[0].name}」` : `${list.length}件`;
             const how = await askDelete(label, st);
@@ -3274,13 +3882,13 @@
                 }
                 catch (e) {
                     console.error(e);
-                    failed = true;
+                    failed = errWhy(e) || ' ';
                 }
                 const n = j.done, cur = j.cur;
                 jobEnd();
                 dropClip(t.st, t.p, list.map(x => x.name));
                 exitSelect();
-                toast(failed ? `「${cur}」を削除できませんでした(${n}件は削除済み)` : `${n}件を完全に削除しました`);
+                toast(failed ? `「${cur}」を削除できませんでした${failed.trim()}(${n}件は削除済み)` : `${n}件を完全に削除しました`);
                 renderAll();
                 return;
             }
@@ -3290,7 +3898,7 @@
             }
             catch (e) {
                 console.error(e);
-                toast('ゴミ箱に移動できませんでした');
+                toast('ゴミ箱に移動できませんでした' + errWhy(e));
             }
             dropClip(t.st, t.p, ents.map(e => e.name));
             exitSelect();
@@ -3307,8 +3915,6 @@
         }
         /* ゴミ箱のタブ: 元に戻す・完全に削除・空にする */
         async function trashRestoreSel(list = selItems()) {
-            if (notYet('①-2'))
-                return;
             if (!list.length)
                 return;
             let n = 0, skip = 0, failed = '';
@@ -3326,14 +3932,12 @@
             toast(failed ? `「${failed}」を元に戻せませんでした(${n}件は戻し済み)` : `${n}件を元に戻しました${skip ? `(${skip}件はスキップ)` : ''}`);
         }
         async function trashPurgeSel(list = selItems(), all = false) {
-            if (notYet('①-2'))
-                return;
             if (!list.length) {
                 toast('ゴミ箱は空です');
                 return;
             }
             const label = all ? `ゴミ箱の${list.length}件を${list.length > 1 ? 'すべて' : ''}` : list.length == 1 ? `「${list[0].label}」を` : `${list.length}件を`;
-            if (!(await askSheet(`${label}完全に削除しますか?`, `<button class="sb danger" data-r="ok">${all ? 'ゴミ箱を空にする' : '完全に削除'}</button><div class="note">完全に削除すると元に戻せません</div>`)))
+            if (!(await askSheet(`${label}完全に削除しますか?`, `<button class="sb danger" data-r="ok">${all ? 'ゴミ箱を空にする' : '完全に削除'}</button><div class="note warn">完全に削除すると元に戻せません</div>`)))
                 return;
             for (const [st, ents] of trashGroups(list))
                 await purgeEntries(st, ents).catch(e => console.error(e));
@@ -3381,10 +3985,10 @@
             }
         }
         async function renameSel() {
-            if (notYet('①-2'))
-                return;
             const x = selItems()[0], t = tab(), st = stOf(t.st);
             if (!x)
+                return;
+            if (blockProtected([x], '名前を変更'))
                 return;
             const v = await askName('名前の変更', 'ren', x.name, '変更', async v => {
                 if (v != x.name && v.toLowerCase() != x.name.toLowerCase() && await fsGet(st, t.p, v))
@@ -3414,7 +4018,7 @@
             catch (e) {
                 console.error(e);
                 jobEnd();
-                toast('名前を変更できませんでした');
+                toast('名前を変更できませんでした' + errWhy(e));
             }
             renderAll();
         }
@@ -3666,7 +4270,7 @@
                 toast(zipErrText(err, '圧縮'));
             }
             else if (canceled)
-                toast('圧縮を中止しました');
+                toast('圧縮をキャンセルしました');
             else {
                 exitSelect();
                 toast(`「${v}」を作成しました`);
@@ -3769,7 +4373,7 @@
                 toast(zipErrText(err, '展開'));
             }
             else if (canceled)
-                toast(`展開を中止しました(${n}件は展開済み)`);
+                toast(`展開をキャンセルしました(${n}件は展開済み)`);
             else
                 toast(`${made ? `「${made}」に` : ''}${n}件を展開しました${skip ? `(${skip}件はスキップ)` : ''}`);
             exitSelect();
@@ -3778,8 +4382,6 @@
         const isZip = x => !x.dir && /\.zip$/i.test(x.name);
 
         async function newFolder() {
-            if (notYet('①-2'))
-                return;
             const t = tab(), st = stOf(t.st);
             if (!t)
                 return;
@@ -3800,7 +4402,7 @@
             }
             catch (e) {
                 console.error(e);
-                toast('フォルダを作成できませんでした');
+                toast('フォルダを作成できませんでした' + errWhy(e));
             }
             renderMain();
         }
@@ -3854,8 +4456,8 @@
             if (isTrash()) {
                 popMenu(x, y, [
                     { t: 'ゴミ箱内を検索', ic: 'search', act: () => toggleSearch(true) },
-                    { t: '一覧表示', chk: S.view == 'list', act: () => setView('list') },
-                    { t: 'アイコン表示', chk: S.view == 'grid', act: () => setView('grid') },
+                    { t: '一覧表示', chk: viewOf() == 'list', act: () => setView('list') },
+                    { t: 'アイコン表示', chk: viewOf() == 'grid', act: () => setView('grid') },
                     { t: '並べ替え…', ic: 'sort', act: () => sortMenu(x, y) },
                     '-',
                     { t: '全選択', ic: 'selAll', act: selectAll },
@@ -3869,8 +4471,10 @@
                 '-',
                 { t: '新しいフォルダ', ic: 'newFolder', act: newFolder },
                 '-',
-                { t: '一覧表示', chk: S.view == 'list', act: () => setView('list') },
-                { t: 'アイコン表示', chk: S.view == 'grid', act: () => setView('grid') },
+                { t: '一覧表示', chk: viewOf() == 'list', act: () => setView('list') },
+                { t: 'アイコン表示', chk: viewOf() == 'grid', act: () => setView('grid') },
+                { t: 'ギャラリー表示', chk: viewOf() == 'gal', act: () => setView('gal') },
+                ...(viewOf() == 'gal' ? [{ row: GCOLS.map(([k, n]) => ({ t: n, on: (S.gcols || '4') == k, act: () => setGcols(k) })) }] : []),
                 { t: '並べ替え…', ic: 'sort', act: () => sortMenu(x, y) },
                 { t: '隠しファイルを表示', chk: S.hidden, act: () => { S.hidden = !S.hidden; save(); draw(); updateSel(); } },
                 '-',
@@ -3879,23 +4483,45 @@
                 { t: '設定', ic: 'gear', act: openSettings },
             ]);
         }
+        /* 表示の仕方はタブごとに覚えます。
+           S.view は、最後に使った「一覧表示」か「アイコン表示」(新しいタブと、タブに覚えていないときに使う) */
+        const viewOf = () => (tab() && tab().view) || (S.view == 'grid' ? 'grid' : 'list');
         function setView(v) {
-            S.view = v;
+            if (tab())
+                tab().view = v;
+            if (v != 'gal')
+                S.view = v;
+            save();
+            draw();
+            updateSel();
+        }
+        const GCOLS = [['3', '3列'], ['4', '4列'], ['auto', '自動']];
+        function setGcols(c) {
+            S.gcols = c;
             save();
             draw();
             updateSel();
         }
         function sortMenu(x, y) {
-            const s = S.sort;
-            const k = key => () => { s.k = key; save(); draw(); updateSel(); };
+            const s = curSort(), own = !!S.sorts[sortKey(tab())];
+            const k = key => () => setSort(key, s.asc);
             popMenu(x, y, [
                 { t: '名前', chk: s.k == 'name', act: k('name') },
                 { t: '更新日時', chk: s.k == 'date', act: k('date') },
                 { t: 'サイズ', chk: s.k == 'size', act: k('size') },
                 { t: '種類', chk: s.k == 'type', act: k('type') },
                 '-',
-                { t: '昇順', chk: s.asc, act: () => { s.asc = true; save(); draw(); updateSel(); } },
-                { t: '降順', chk: !s.asc, act: () => { s.asc = false; save(); draw(); updateSel(); } },
+                { t: '昇順', chk: s.asc, act: () => setSort(s.k, true) },
+                { t: '降順', chk: !s.asc, act: () => setSort(s.k, false) },
+                ...(own ? ['-', {
+                    t: '並べ替えを元に戻す', ic: 'refresh', act: () => {
+                        delete S.sorts[sortKey(tab())];
+                        save();
+                        draw();
+                        updateSel();
+                        toast('「名前・昇順」に戻しました');
+                    },
+                }] : []),
             ]);
         }
         /* ===== アプリ内のアイコン(たる + フォルダ)。設定で選びます =====
@@ -3928,12 +4554,15 @@
 
         /* ===== 設定の画面 ===== */
         const THEMES = [['auto', '端末に合わせる'], ['light', 'ライトモード'], ['dark', 'ダークモード']];
+        const THUMBS = [['on', '表示する'], ['off', '表示しない']];
         const LPFBS = [['vib', '振動'], ['none', 'なし']]; /* 長押しのフィードバック(音はあとで足す予定) */
         function openSettings() {
             closeDrawer();
             const ver = APP ? `${appIc()}たるファイラー<br>アプリ版: ${esc(APPVER)}<br>HTML: ${APP_VER}` : `${appIc()}たるファイラー(HTML版)<br>バージョン: ${APP_VER}`;
             const html = `<div class="seth">表示の色</div><div class="seg">`
                 + THEMES.map(([k, n]) => `<button data-th="${k}">${n}</button>`).join('') + `</div>`
+                + `<div class="seth">サムネイル(画像・動画・APK)</div><div class="seg">`
+                + THUMBS.map(([k, n]) => `<button data-tb="${k}">${n}</button>`).join('') + `</div>`
                 + `<div class="seth">長押しのフィードバック</div><div class="seg">`
                 + LPFBS.map(([k, n]) => `<button data-fb="${k}">${n}</button>`).join('') + `</div>`
                 + `<div class="seth">アプリ内のアイコン</div><div class="icsel">`
@@ -3945,6 +4574,7 @@
                 box.querySelectorAll('[data-th]').forEach(b => b.classList.toggle('on', b.dataset.th == (S.theme || 'auto')));
                 box.querySelectorAll('[data-ic]').forEach(b => b.classList.toggle('on', b.dataset.ic == iconKey()));
                 box.querySelectorAll('[data-fb]').forEach(b => b.classList.toggle('on', b.dataset.fb == (S.lpFb || 'vib')));
+                box.querySelectorAll('[data-tb]').forEach(b => b.classList.toggle('on', b.dataset.tb == (S.thumbs === false ? 'off' : 'on')));
             };
             mark();
             box.querySelectorAll('[data-th]').forEach(b => b.onclick = () => {
@@ -3952,6 +4582,13 @@
                 save();
                 applyTheme();
                 mark();
+            });
+            box.querySelectorAll('[data-tb]').forEach(b => b.onclick = () => {
+                S.thumbs = b.dataset.tb == 'on';
+                save();
+                mark();
+                if (!isHome() && $('main').querySelector('.it'))
+                    draw(); /* 後ろの一覧にすぐ反映 */
             });
             box.querySelectorAll('[data-fb]').forEach(b => b.onclick = () => {
                 S.lpFb = b.dataset.fb;
@@ -4206,6 +4843,8 @@
             main.addEventListener('scroll', () => {
                 if (!loading && tab())
                     tab().sc = main.scrollTop;
+                if (!loading)
+                    fsOnScroll();
             }, { passive: true });
 
             $('selX').onclick = exitSelect;
@@ -4217,8 +4856,11 @@
                     draw();
             };
             $('progX').onclick = () => {
-                if (job)
+                if (job) {
                     job.cancel = true;
+                    if (APP && APP.cancel)
+                        APP.cancel(job.id); /* 大きいファイルのコピーも、途中で止めます */
+                }
             };
             $('selAll').onclick = selectAll;
             $('opbar').onclick = e => {
@@ -4334,6 +4976,8 @@
            メニュー → ウインドウ → ドロワー → フォルダ内検索 → 選択 の順に閉じて、
            なければ1つ上のフォルダへ。一番上・ホームでは何もしません(アプリは閉じない) */
         window.taruBack = () => {
+            if (job) /* 処理中(進み具合のウインドウ)は、戻るボタンでは何もしません。止めるときは「キャンセル」 */
+                return;
             if (!$('pop').hidden)
                 $('pop').hidden = true;
             else if (closeModal)
@@ -4358,6 +5002,81 @@
                 layoutCrumbs(tab().p);
         };
 
+        /* ===== スクロールのつまみ =====
+           一覧がだいたい3画面分より長いときだけ、スクロールを始めると右端に出す。止めて約1.5秒で消える。
+           つまみをドラッグすると、その位置までスクロールする(一番上〜一番下) */
+        const FS_H = 48;
+        let fsTimer = 0, fsDrag = null;
+        function fsEl() {
+            let el = $('fs');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'fs';
+                el.innerHTML = '<svg viewBox="0 0 16 28"><path d="M8 3l5 7H3zM8 25l-5-7h10z" fill="currentColor"/></svg>';
+                document.body.appendChild(el);
+                el.addEventListener('pointerdown', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const r = el.getBoundingClientRect();
+                    fsDrag = { dy: e.clientY - r.top };
+                    el.setPointerCapture(e.pointerId);
+                    el.classList.add('drag');
+                    clearTimeout(fsTimer);
+                });
+                el.addEventListener('pointermove', e => {
+                    if (!fsDrag)
+                        return;
+                    const main = $('main'), mr = main.getBoundingClientRect();
+                    const range = mr.height - FS_H, max = main.scrollHeight - main.clientHeight;
+                    const k = Math.min(1, Math.max(0, (e.clientY - fsDrag.dy - mr.top) / Math.max(1, range)));
+                    main.scrollTop = k * max;
+                    fsPlace();
+                });
+                const end = () => {
+                    if (!fsDrag)
+                        return;
+                    fsDrag = null;
+                    el.classList.remove('drag');
+                    fsHideLater();
+                };
+                el.addEventListener('pointerup', end);
+                el.addEventListener('pointercancel', end);
+                el.addEventListener('click', e => e.stopPropagation());
+            }
+            return el;
+        }
+        function fsPlace() {
+            const main = $('main'), el = fsEl(), mr = main.getBoundingClientRect();
+            const max = main.scrollHeight - main.clientHeight;
+            const k = max > 0 ? main.scrollTop / max : 0;
+            el.style.top = Math.round(mr.top + k * (mr.height - FS_H)) + 'px';
+        }
+        function fsHideLater() {
+            clearTimeout(fsTimer);
+            fsTimer = setTimeout(() => {
+                if (!fsDrag)
+                    fsHide();
+            }, 1500);
+        }
+        function fsHide() {
+            const el = $('fs');
+            if (el)
+                el.classList.remove('on');
+            $('main').classList.remove('fsing');
+        }
+        function fsOnScroll() {
+            const main = $('main');
+            if (isHome() || main.scrollHeight < main.clientHeight * 3) {
+                fsHide();
+                return;
+            }
+            fsPlace();
+            fsEl().classList.add('on');
+            main.classList.add('fsing');
+            if (!fsDrag)
+                fsHideLater();
+        }
+
         /* ===== 起動 ===== */
         (async () => {
             try {
@@ -4367,6 +5086,22 @@
             document.querySelectorAll('i[data-sv]').forEach(e => e.outerHTML = sv(e.dataset.sv)); /* HTMLに書いたアイコンをSVGにします */
             applyIcon();
             applyTheme();
+            /* サムネイルが読み込めたら、種類の絵と入れ替えます(load は泡立たないので、捕まえる側で受けます) */
+            $('main').addEventListener('load', e => {
+                const t = e.target;
+                if (!t.classList || !t.classList.contains('th'))
+                    return;
+                const ic = t.closest('.ic');
+                if (!ic)
+                    return;
+                /* 写真・動画は、形のまま枠に収まる大きさにする(小さい画像も枠まで広げる)。ギャラリーはCSSで正方形に切り取る */
+                if (!t.classList.contains('apk') && !t.closest('.gal') && t.naturalWidth && t.naturalHeight) {
+                    const box = t.closest('.grid') ? 56 : 32, k = Math.min(box / t.naturalWidth, box / t.naturalHeight);
+                    t.style.width = Math.max(1, Math.round(t.naturalWidth * k)) + 'px';
+                    t.style.height = Math.max(1, Math.round(t.naturalHeight * k)) + 'px';
+                }
+                ic.classList.add('thok');
+            }, true);
             if (APP && APP.cutout) {
                 try {
                     const c = JSON.parse(APP.cutout());
